@@ -6,7 +6,7 @@ from diffusers import (
     WanImageToVideoPipeline,
     WanTransformer3DModel,
     GGUFQuantizationConfig,
-    LCMScheduler,
+    LCMScheduler, UniPCMultistepScheduler,
 )
 from diffusers.utils import load_image, export_to_video
 from diffusers.hooks import apply_group_offloading
@@ -35,7 +35,7 @@ lora_path = hf_hub_download(
 
 print("Loading models")
 t_hi = WanTransformer3DModel.from_single_file(
-    "https://huggingface.co/bullerwins/Wan2.2-I2V-A14B-GGUF/blob/main/wan2.2_i2v_high_noise_14B_Q8_0.gguf",
+    "https://huggingface.co/bullerwins/Wan2.2-I2V-A14B-GGUF/blob/main/wan2.2_i2v_high_noise_14B_Q2_K.gguf",
     quantization_config=GGUFQuantizationConfig(compute_dtype=torch.bfloat16),
     torch_dtype=torch.bfloat16,
     config="Wan-AI/Wan2.2-I2V-A14B-Diffusers",
@@ -44,7 +44,7 @@ t_hi = WanTransformer3DModel.from_single_file(
 )
 
 t_lo = WanTransformer3DModel.from_single_file(
-    "https://huggingface.co/bullerwins/Wan2.2-I2V-A14B-GGUF/blob/main/wan2.2_i2v_low_noise_14B_Q8_0.gguf",
+    "https://huggingface.co/bullerwins/Wan2.2-I2V-A14B-GGUF/blob/main/wan2.2_i2v_low_noise_14B_Q2_K.gguf",
     quantization_config=GGUFQuantizationConfig(compute_dtype=torch.bfloat16),
     torch_dtype=torch.bfloat16,
     config="Wan-AI/Wan2.2-I2V-A14B-Diffusers",
@@ -66,32 +66,40 @@ pipe = WanImageToVideoPipeline.from_pretrained(
 
 offload_device = "cpu"
 onload_device = "cuda"
-pipe.vae.enable_group_offload(onload_device=onload_device, offload_device=offload_device, offload_type="leaf_level")
-pipe.transformer.enable_group_offload(onload_device=onload_device, offload_device=offload_device, offload_type="leaf_level")
-pipe.transformer_2.enable_group_offload(onload_device=onload_device, offload_device=offload_device, offload_type="leaf_level")
-apply_group_offloading(pipe.text_encoder, onload_device=onload_device, offload_device=offload_device, offload_type="block_level", num_blocks_per_group=2)
-pipe.load_lora_weights(lora_path)
-org_state_dict = safetensors.torch.load_file(lora_path)
-converted_state_dict = _convert_non_diffusers_wan_lora_to_diffusers(org_state_dict)
-pipe.transformer_2.load_lora_adapter(converted_state_dict)
+# pipe.vae.enable_group_offload(onload_device=onload_device, offload_device=offload_device, offload_type="leaf_level")
+# pipe.transformer.enable_group_offload(onload_device=onload_device, offload_device=offload_device, offload_type="leaf_level")
+# pipe.transformer_2.enable_group_offload(onload_device=onload_device, offload_device=offload_device, offload_type="leaf_level")
+# apply_group_offloading(pipe.text_encoder, onload_device=onload_device, offload_device=offload_device, offload_type="block_level", num_blocks_per_group=2)
+lora_path = hf_hub_download(
+    repo_id="Kijai/WanVideo_comfy",
+    filename="Lightx2v/lightx2v_I2V_14B_480p_cfg_step_distill_rank128_bf16.safetensors",
+    cache_dir=workspace_dir
+)
 
-pipe.scheduler.config["prediction_type"] = "epsilon"
-pipe.scheduler = LCMScheduler.from_config(pipe.scheduler.config)
 pipe.to("cuda")
 
-img = load_image(Image.open("image.jpg")).convert("RGB")
-prompt = (
-    sys.argv[2]
-    if len(sys.argv) > 2
-    else "A neon-lit cyber-samurai walking through rainy Tokyo at night"
-)
+pipe.load_lora_weights(lora_path, adapter_name='lightx2v_t1')
+pipe.set_adapters(["lightx2v_t1"], adapter_weights=[3.0])
+
+if hasattr(pipe, "transformer_2") and pipe.transformer_2 is not None:
+    org_state_dict = safetensors.torch.load_file(lora_path)
+    converted_state_dict = _convert_non_diffusers_wan_lora_to_diffusers(org_state_dict)
+    pipe.transformer_2.load_lora_adapter(converted_state_dict, adapter_name="lightx2v")
+    pipe.transformer_2.set_adapters(["lightx2v"], weights=[1.5])
+
+# pipe.scheduler.config["prediction_type"] = "epsilon"
+pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config, flow_shift=8.0)
+
+img = load_image(Image.open("image.png")).convert("RGB")
+
 print("Starting generation")
 frames = pipe(
     image=img,
-    prompt=prompt,
-    num_inference_steps=6,
+    prompt="A cyber soldier walks forward along the arrow drawn on the floor. steps are heavy and robotic. camera is following him.",
+    negative_prompt="",
+    num_inference_steps=4,
     guidance_scale=1.0,
-    num_frames=17,
+    num_frames=81,
     height=720,
     width=1280,
 ).frames[0]
