@@ -1,4 +1,5 @@
 import os, sys, torch, imageio
+import numpy as np
 from tqdm.auto import tqdm
 from huggingface_hub import hf_hub_download
 from diffusers import (
@@ -7,18 +8,20 @@ from diffusers import (
     GGUFQuantizationConfig,
     LCMScheduler,
 )
-from diffusers.utils import load_image
+from diffusers.utils import load_image, export_to_video
 from diffusers.hooks import apply_group_offloading
 import diffusers
 diffusers.logging.set_verbosity_info()
 from PIL import Image
-
+import safetensors 
 import torch.nn.functional as F
 _orig_sdpa = F.scaled_dot_product_attention
 def _patched_sdpa(*a, **k):
     k.pop("enable_gqa", None)
     return _orig_sdpa(*a, **k)
 F.scaled_dot_product_attention = _patched_sdpa
+
+from diffusers.loaders.lora_conversion_utils import _convert_non_diffusers_wan_lora_to_diffusers
 
 
 workspace_dir = "/workspace/hf_cache"
@@ -68,6 +71,9 @@ pipe.transformer.enable_group_offload(onload_device=onload_device, offload_devic
 pipe.transformer_2.enable_group_offload(onload_device=onload_device, offload_device=offload_device, offload_type="leaf_level")
 apply_group_offloading(pipe.text_encoder, onload_device=onload_device, offload_device=offload_device, offload_type="block_level", num_blocks_per_group=2)
 pipe.load_lora_weights(lora_path)
+org_state_dict = safetensors.torch.load_file(lora_path)
+converted_state_dict = _convert_non_diffusers_wan_lora_to_diffusers(org_state_dict)
+pipe.transformer_2.load_lora_adapter(converted_state_dict)
 
 pipe.scheduler.config["prediction_type"] = "epsilon"
 pipe.scheduler = LCMScheduler.from_config(pipe.scheduler.config)
@@ -85,8 +91,9 @@ frames = pipe(
     prompt=prompt,
     num_inference_steps=6,
     guidance_scale=1.0,
-    num_frames=8,
+    num_frames=17,
     height=720,
     width=1280,
-).frames
-imageio.mimsave("output.mp4", frames, fps=24)
+).frames[0]
+
+export_to_video(frames, "output.mp4", fps=16)
