@@ -1,0 +1,1 @@
+PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python infer_i2v_gguf.py
