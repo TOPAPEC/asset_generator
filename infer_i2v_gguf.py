@@ -35,7 +35,7 @@ lora_path = hf_hub_download(
 
 print("Loading models")
 t_hi = WanTransformer3DModel.from_single_file(
-    "https://huggingface.co/bullerwins/Wan2.2-I2V-A14B-GGUF/blob/main/wan2.2_i2v_high_noise_14B_Q2_K.gguf",
+    "https://huggingface.co/bullerwins/Wan2.2-I2V-A14B-GGUF/blob/main/wan2.2_i2v_high_noise_14B_Q8_0.gguf",
     quantization_config=GGUFQuantizationConfig(compute_dtype=torch.bfloat16),
     torch_dtype=torch.bfloat16,
     config="Wan-AI/Wan2.2-I2V-A14B-Diffusers",
@@ -44,7 +44,7 @@ t_hi = WanTransformer3DModel.from_single_file(
 )
 
 t_lo = WanTransformer3DModel.from_single_file(
-    "https://huggingface.co/bullerwins/Wan2.2-I2V-A14B-GGUF/blob/main/wan2.2_i2v_low_noise_14B_Q2_K.gguf",
+    "https://huggingface.co/bullerwins/Wan2.2-I2V-A14B-GGUF/blob/main/wan2.2_i2v_low_noise_14B_Q8_0.gguf",
     quantization_config=GGUFQuantizationConfig(compute_dtype=torch.bfloat16),
     torch_dtype=torch.bfloat16,
     config="Wan-AI/Wan2.2-I2V-A14B-Diffusers",
@@ -54,7 +54,7 @@ t_lo = WanTransformer3DModel.from_single_file(
 print("Loaded models")
 
 
-max_memory={0: "24GB"}
+max_memory={0: "48GB"}
 pipe = WanImageToVideoPipeline.from_pretrained(
     "Wan-AI/Wan2.2-I2V-A14B-Diffusers", 
     torch_dtype=torch.bfloat16, 
@@ -66,10 +66,10 @@ pipe = WanImageToVideoPipeline.from_pretrained(
 
 offload_device = "cpu"
 onload_device = "cuda"
-# pipe.vae.enable_group_offload(onload_device=onload_device, offload_device=offload_device, offload_type="leaf_level")
+pipe.vae.enable_group_offload(onload_device=onload_device, offload_device=offload_device, offload_type="leaf_level")
 # pipe.transformer.enable_group_offload(onload_device=onload_device, offload_device=offload_device, offload_type="leaf_level")
 # pipe.transformer_2.enable_group_offload(onload_device=onload_device, offload_device=offload_device, offload_type="leaf_level")
-# apply_group_offloading(pipe.text_encoder, onload_device=onload_device, offload_device=offload_device, offload_type="block_level", num_blocks_per_group=2)
+apply_group_offloading(pipe.text_encoder, onload_device=onload_device, offload_device=offload_device, offload_type="block_level", num_blocks_per_group=2)
 lora_path = hf_hub_download(
     repo_id="Kijai/WanVideo_comfy",
     filename="Lightx2v/lightx2v_I2V_14B_480p_cfg_step_distill_rank128_bf16.safetensors",
@@ -95,13 +95,13 @@ img = load_image(Image.open("image.png")).convert("RGB")
 print("Starting generation")
 frames = pipe(
     image=img,
-    prompt="A cyber soldier walks forward along the arrow drawn on the floor. steps are heavy and robotic. camera is following him.",
+    prompt="A 360 degrees view of the character. Camera is moving fast and is able to capture full 360 degree view",
     negative_prompt="",
     num_inference_steps=4,
     guidance_scale=1.0,
     num_frames=81,
-    height=720,
-    width=1280,
+    height=768,
+    width=768,
 ).frames[0]
 
 export_to_video(frames, "output.mp4", fps=16)
