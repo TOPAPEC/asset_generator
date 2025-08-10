@@ -10,3 +10,4 @@ ftfy
 peft>=0.6.0
 imageio[ffmpeg]
 opencv-python
+numpy<2.0

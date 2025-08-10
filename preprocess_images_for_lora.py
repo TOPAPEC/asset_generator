@@ -14,7 +14,7 @@ def dhash(img, hash_size=8):
 def hamming(a, b):
     return (a ^ b).bit_count()
 src = "raw_frames"
-dst = "images"
+dst = "30_images"
 os.makedirs(dst, exist_ok=True)
 prev_hash = None
 keep_every = 2
@@ -38,7 +38,7 @@ model_id = "p1atdev/wd-swinv2-tagger-v3-hf"
 processor = AutoImageProcessor.from_pretrained(model_id, trust_remote_code=True)
 model = AutoModelForImageClassification.from_pretrained(model_id)
 
-images_dir = "images"
+images_dir = dst
 thresh = 0.35
 
 for name in sorted(os.listdir(images_dir)):
@@ -56,7 +56,7 @@ for name in sorted(os.listdir(images_dir)):
 
 
 import os
-root = "images"
+root = images_dir
 trigger = "super_mecha_robotrigger"
 for name in os.listdir(root):
     if not name.endswith(".txt"):
