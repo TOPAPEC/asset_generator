@@ -95,7 +95,7 @@ img = load_image(Image.open("image.png")).convert("RGB")
 print("Starting generation")
 frames = pipe(
     image=img,
-    prompt="A 360 degrees view of the character. Camera is moving fast and is able to capture full 360 degree view",
+    prompt="A 360 degrees view of the character. Camera is moving fast and is able to capture full side view, full front view and full back view",
     negative_prompt="",
     num_inference_steps=4,
     guidance_scale=1.0,
@@ -105,3 +105,27 @@ frames = pipe(
 ).frames[0]
 
 export_to_video(frames, "output.mp4", fps=16)
+
+out_dir = "raw_frames"
+def to_pil(im):
+    if isinstance(im, Image.Image):
+        return im.convert("RGB")
+    if isinstance(im, np.ndarray):
+        arr = im
+        if arr.dtype != np.uint8:
+            mn = float(arr.min())
+            mx = float(arr.max())
+            if mx <= 1.0 and mn >= 0.0:
+                arr = (arr * 255.0).round().astype(np.uint8)
+            else:
+                arr = np.clip(arr, 0, 255).astype(np.uint8)
+        if arr.ndim == 3 and arr.shape[2] == 3:
+            return Image.fromarray(arr, "RGB")
+        if arr.ndim == 3 and arr.shape[2] == 4:
+            return Image.fromarray(arr, "RGBA").convert("RGB")
+        if arr.ndim == 2:
+            return Image.fromarray(arr, "L").convert("RGB")
+    raise TypeError(f"Unsupported frame type {type(im)}")
+
+for i, im in enumerate(frames):
+    to_pil(im).save(os.path.join(out_dir, f"frame_{i:03d}.png"))
