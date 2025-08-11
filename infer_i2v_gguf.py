@@ -95,7 +95,7 @@ img = load_image(Image.open("image.png")).convert("RGB")
 print("Starting generation")
 frames = pipe(
     image=img,
-    prompt="A 360 degrees view of the character. Camera is moving fast and is able to capture full side view, full front view and full back view",
+    prompt="A 360 degrees view of the character running forward. Camera is moving fast and is able to capture full side view, full front view and full back view and other side view",
     negative_prompt="",
     num_inference_steps=4,
     guidance_scale=1.0,

@@ -1,15 +1,15 @@
 import os
 from PIL import Image
 import torch
-from diffusers import StableDiffusionControlNetPipeline, ControlNetModel, UniPCMultistepScheduler
+from diffusers import StableDiffusionControlNetPipeline, ControlNetModel, UniPCMultistepScheduler, StableDiffusionPipeline
 
-BASE_MODEL = "runwayml/stable-diffusion-v1-5"
+BASE_MODEL = "Lykon/dreamshaper-8"
 CONTROLNET_ID = "lllyasviel/sd-controlnet-openpose"
 LORA_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "sd-scripts", "out", "char_lora.safetensors"))
 POSES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "poses"))
 OUT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "outputs", "pose_lora"))
-PROMPT = "super_mecha_robotrigger, best quality, masterpiece, 1girl, full body"
-NEGATIVE = "lowres, bad anatomy, bad hands, extra fingers, missing fingers, deformed"
+PROMPT = "super_mecha_robotrigger, rating:general, 1girl, solo, red eyes, standing, full body, no humans, shadow, robot, mecha, science fiction, looking ahead, robot joints, open hands, humanoid robot"
+NEGATIVE = "lowres, bad anatomy, bad hands, extra fingers, missing fingers, deformed, detailed background, multiple characters"
 GUIDANCE = 7.0
 STEPS = 20
 LORA_SCALE = 0.8
@@ -19,7 +19,10 @@ TARGET_LONG = 768
 os.makedirs(OUT_DIR, exist_ok=True)
 dtype = torch.float16 if torch.cuda.is_available() else torch.float32
 controlnet = ControlNetModel.from_pretrained(CONTROLNET_ID, torch_dtype=dtype)
-pipe = StableDiffusionControlNetPipeline.from_pretrained(BASE_MODEL, controlnet=controlnet, torch_dtype=dtype)
+pipe = StableDiffusionControlNetPipeline.from_pretrained(
+    BASE_MODEL, 
+    controlnet=controlnet, 
+    torch_dtype=dtype)
 pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
 if torch.cuda.is_available():
     pipe.to("cuda")
