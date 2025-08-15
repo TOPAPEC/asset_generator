@@ -2,6 +2,15 @@
 set -e
 git config --global user.email "danbugrienko@yandex.ru"
 git config --global user.name "TOPAPEC"
+sudo apt update
+sudo apt install software-properties-common
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt update
+sudo apt install python3.11 python3.11-venv python3.11-dev
+python -m venv .venv
+. .venv/bin/activate
+export HF_HOME="./hf_cache/"
+export TRANSFORMERS_CACHE="./hf_cache/transformers/"
 pip install -r requirements.txt
 
 cd "$(dirname "$0")"
@@ -33,7 +42,7 @@ accelerate launch --num_processes=1 train_network.py \
   --sdpa \
   --gradient_checkpointing \
   --network_module networks.lora \
-  --network_dim 16 \
+  --network_dim 32 \
   --network_alpha 16 \
   --train_data_dir ../asset_generator \
   --caption_extension .txt \
@@ -41,9 +50,9 @@ accelerate launch --num_processes=1 train_network.py \
   --enable_bucket \
   --train_batch_size 2 \
   --max_data_loader_n_workers 0 \
-  --max_train_steps 2000
+  --max_train_steps 3000
 
 deactivate
 cd "$PROJECT_DIR"
-
+. .venv/bin/activate
 python infer_pose_lora.py

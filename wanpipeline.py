@@ -23,6 +23,41 @@ F.scaled_dot_product_attention = _patched_sdpa
 
 from diffusers.loaders.lora_conversion_utils import _convert_non_diffusers_wan_lora_to_diffusers
 
+import os, glob
+
+def get_first_and_last_frame(folder_path):
+    frames = sorted(glob.glob(os.path.join(folder_path, "*.png")))
+    if not frames:
+        raise FileNotFoundError
+    return load_image(Image.open(frames[0])).convert("RGB"), load_image(Image.open(frames[-1])).convert("RGB")
+
+import os, glob, re
+
+def get_last_frame_number(folder_path):
+    frames = sorted(glob.glob(os.path.join(folder_path, "*.png")))
+    if not frames:
+        raise FileNotFoundError
+    return int(re.search(r'\d+', os.path.basename(frames[-1])).group())
+
+def to_pil(im):
+    if isinstance(im, Image.Image):
+        return im.convert("RGB")
+    if isinstance(im, np.ndarray):
+        arr = im
+        if arr.dtype != np.uint8:
+            mn = float(arr.min())
+            mx = float(arr.max())
+            if mx <= 1.0 and mn >= 0.0:
+                arr = (arr * 255.0).round().astype(np.uint8)
+            else:
+                arr = np.clip(arr, 0, 255).astype(np.uint8)
+        if arr.ndim == 3 and arr.shape[2] == 3:
+            return Image.fromarray(arr, "RGB")
+        if arr.ndim == 3 and arr.shape[2] == 4:
+            return Image.fromarray(arr, "RGBA").convert("RGB")
+        if arr.ndim == 2:
+            return Image.fromarray(arr, "L").convert("RGB")
+    raise TypeError(f"Unsupported frame type {type(im)}")
 
 workspace_dir = "/workspace/hf_cache"
 os.environ["HF_HOME"] = "/workspace/hf_cache"
@@ -90,12 +125,13 @@ if hasattr(pipe, "transformer_2") and pipe.transformer_2 is not None:
 # pipe.scheduler.config["prediction_type"] = "epsilon"
 pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config, flow_shift=8.0)
 
-img = load_image(Image.open("image.png")).convert("RGB")
+fimg, limg = get_first_and_last_frame("raw_frames/")
 
 print("Starting generation")
 frames = pipe(
-    image=img,
-    prompt="A 360 degrees view of the character running forward. Camera is moving fast and is able to capture full side view, full front view and full back view",
+    image=fimg,
+    last_image=limg,
+    prompt="A character running forward and making jump in the middle of video. Camera is moving fast and is able to capture full side view, full front view and full back view",
     negative_prompt="",
     num_inference_steps=4,
     guidance_scale=1.0,
@@ -104,28 +140,28 @@ frames = pipe(
     width=768,
 ).frames[0]
 
-export_to_video(frames, "output.mp4", fps=16)
+export_to_video(frames, "videos/output1.mp4", fps=16)
 
 out_dir = "raw_frames"
-def to_pil(im):
-    if isinstance(im, Image.Image):
-        return im.convert("RGB")
-    if isinstance(im, np.ndarray):
-        arr = im
-        if arr.dtype != np.uint8:
-            mn = float(arr.min())
-            mx = float(arr.max())
-            if mx <= 1.0 and mn >= 0.0:
-                arr = (arr * 255.0).round().astype(np.uint8)
-            else:
-                arr = np.clip(arr, 0, 255).astype(np.uint8)
-        if arr.ndim == 3 and arr.shape[2] == 3:
-            return Image.fromarray(arr, "RGB")
-        if arr.ndim == 3 and arr.shape[2] == 4:
-            return Image.fromarray(arr, "RGBA").convert("RGB")
-        if arr.ndim == 2:
-            return Image.fromarray(arr, "L").convert("RGB")
-    raise TypeError(f"Unsupported frame type {type(im)}")
+last_im_number = get_last_frame_number(out_dir)
 
 for i, im in enumerate(frames):
-    to_pil(im).save(os.path.join(out_dir, f"frame_{i:03d}.png"))
+    to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + i:03d}.png"))
+
+print("Starting generation")
+frames = pipe(
+    image=fimg,
+    last_image=limg,
+    prompt="A character crouching forward slowly and silently. Camera is moving fast and is able to capture full side view, full front view and full back view",
+    negative_prompt="",
+    num_inference_steps=4,
+    guidance_scale=1.0,
+    num_frames=81,
+    height=768,
+    width=768,
+).frames[0]
+
+last_im_number = get_last_frame_number(out_dir)
+
+for i, im in enumerate(frames):
+    to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + i:03d}.png"))

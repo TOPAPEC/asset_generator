@@ -1,2 +1,4 @@
 sd-scripts/
 wd14_tagger_model
+hf_cache/
+.venv/
