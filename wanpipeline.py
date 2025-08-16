@@ -65,7 +65,7 @@ os.environ["HF_HOME"] = "/workspace/hf_cache"
 lora_path = hf_hub_download(
     repo_id="Kijai/WanVideo_comfy",
     filename="Lightx2v/lightx2v_I2V_14B_480p_cfg_step_distill_rank128_bf16.safetensors",
-    cache_dir=workspace_dir,
+    # cache_dir=workspace_dir,
 )
 
 print("Loading models")
@@ -75,7 +75,7 @@ t_hi = WanTransformer3DModel.from_single_file(
     torch_dtype=torch.bfloat16,
     config="Wan-AI/Wan2.2-I2V-A14B-Diffusers",
     subfolder="transformer",
-    cache_dir=workspace_dir
+    # cache_dir=workspace_dir
 )
 
 t_lo = WanTransformer3DModel.from_single_file(
@@ -84,7 +84,7 @@ t_lo = WanTransformer3DModel.from_single_file(
     torch_dtype=torch.bfloat16,
     config="Wan-AI/Wan2.2-I2V-A14B-Diffusers",
     subfolder="transformer",
-    cache_dir=workspace_dir,
+    # cache_dir=workspace_dir,
 )
 print("Loaded models")
 
@@ -93,7 +93,7 @@ max_memory={0: "48GB"}
 pipe = WanImageToVideoPipeline.from_pretrained(
     "Wan-AI/Wan2.2-I2V-A14B-Diffusers", 
     torch_dtype=torch.bfloat16, 
-    cache_dir=workspace_dir, 
+    # cache_dir=workspace_dir, 
     transformer=t_hi,
     transformer_2=t_lo,
     max_memory=max_memory,
@@ -108,7 +108,7 @@ onload_device = "cuda"
 lora_path = hf_hub_download(
     repo_id="Kijai/WanVideo_comfy",
     filename="Lightx2v/lightx2v_I2V_14B_480p_cfg_step_distill_rank128_bf16.safetensors",
-    cache_dir=workspace_dir
+    # cache_dir=workspace_dir
 )
 
 pipe.to("cuda")
@@ -131,7 +131,7 @@ print("Starting generation")
 frames = pipe(
     image=fimg,
     last_image=limg,
-    prompt="A character running forward and making jump in the middle of video. Camera is moving fast and is able to capture full side view, full front view and full back view",
+    prompt="A character running forward and making jump in the middle of video. Camera is moving and is able to capture full side view, full front view and full back view",
     negative_prompt="",
     num_inference_steps=4,
     guidance_scale=1.0,
@@ -139,6 +139,8 @@ frames = pipe(
     height=768,
     width=768,
 ).frames[0]
+
+os.makedirs("./videos/", exist_ok=True)
 
 export_to_video(frames, "videos/output1.mp4", fps=16)
 
@@ -152,7 +154,7 @@ print("Starting generation")
 frames = pipe(
     image=fimg,
     last_image=limg,
-    prompt="A character crouching forward slowly and silently. Camera is moving fast and is able to capture full side view, full front view and full back view",
+    prompt="A character sits down and begin crouching forward slowly and silently. Camera is moving with character and captures him fullbody all the time",
     negative_prompt="",
     num_inference_steps=4,
     guidance_scale=1.0,
@@ -165,3 +167,45 @@ last_im_number = get_last_frame_number(out_dir)
 
 for i, im in enumerate(frames):
     to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + i:03d}.png"))
+
+export_to_video(frames, "videos/output2.mp4", fps=16)
+
+
+print("Starting generation")
+frames = pipe(
+    image=fimg,
+    last_image=limg,
+    prompt="The character moves into a boxing stance and starts punching with his hands. Camera is moving with character and captures him fullbody all the time",
+    negative_prompt="",
+    num_inference_steps=4,
+    guidance_scale=1.0,
+    num_frames=81,
+    height=768,
+    width=768,
+).frames[0]
+
+last_im_number = get_last_frame_number(out_dir)
+
+for i, im in enumerate(frames):
+    to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + i:03d}.png"))
+
+export_to_video(frames, "videos/output3.mp4", fps=16)
+
+print("Starting generation")
+frames = pipe(
+    image=fimg,
+    prompt="Character stands still. The camera zooms in on the persona's face, first capturing it in profile, then in full-face so that the face, neck and chest are visibleCamera is moving towards character face ",
+    negative_prompt="",
+    num_inference_steps=4,
+    guidance_scale=1.0,
+    num_frames=81,
+    height=768,
+    width=768,
+).frames[0]
+
+last_im_number = get_last_frame_number(out_dir)
+
+for i, im in enumerate(frames):
+    to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + i:03d}.png"))
+
+export_to_video(frames, "videos/output4.mp4", fps=16)

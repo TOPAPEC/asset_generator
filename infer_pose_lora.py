@@ -1,36 +1,63 @@
 import os
 from PIL import Image
 import torch
-from diffusers import StableDiffusionControlNetPipeline, ControlNetModel, UniPCMultistepScheduler, StableDiffusionPipeline
+from diffusers import StableDiffusionControlNetPipeline, ControlNetModel, UniPCMultistepScheduler, StableDiffusionPipeline, StableDiffusionXLControlNetPipeline
+from transformers import CLIPVisionModelWithProjection
+from diffusers.utils import load_image
 
-BASE_MODEL = "Lykon/dreamshaper-8"
-CONTROLNET_ID = "lllyasviel/sd-controlnet-openpose"
+BASE_MODEL = "sam749/Photon-v1"
+CONTROLNET_ID = "lllyasviel/control_v11p_sd15_openpose"
 LORA_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "sd-scripts", "out", "char_lora.safetensors"))
 POSES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "poses"))
 OUT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "outputs", "pose_lora"))
-PROMPT = "super_mecha_robotrigger, rating:general, 1girl, solo, red eyes, standing, full body, no humans, shadow, robot, mecha, science fiction, looking ahead, robot joints, open hands, humanoid robot"
-NEGATIVE = "lowres, bad anatomy, bad hands, extra fingers, missing fingers, deformed, detailed background, multiple characters"
-GUIDANCE = 7.0
-STEPS = 20
-LORA_SCALE = 0.8
+PROMPT = "super_mecha_robotrigger, rating:general, cyberpunk, art, anime, 1girl, solo, red eyes, standing, full body, no humans, shadow, robot, mecha, science fiction, looking ahead, robot joints, open hands, humanoid robot"
+NEGATIVE = "worst quality, low quality, bad anatomy, bad hands, bad body, missing fingers, extra digit, three legs, three arms, fewer digits, blurry, text, watermark, lowres, bad anatomy, bad hands, extra fingers, missing fingers, deformed, detailed background, multiple characters"
+GUIDANCE = 4.0
+STEPS = 30
+LORA_SCALE = 1.0
 SEED = 42
-TARGET_LONG = 768
+TARGET_LONG = 1024
+
+IP_ADAPTER_REPO = "h94/IP-Adapter"
+IP_ADAPTER_WEIGHT = "ip-adapter_sd15.safetensors"  # SD1.5 adapter
+IP_SCALE = 0.7  # 0.6–0.8
+REF_IMAGE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "image.png"))
+
+workspace_dir = "/workspace/hf_cache"
+os.environ["HF_HOME"] = "/workspace/hf_cache"
 
 os.makedirs(OUT_DIR, exist_ok=True)
 dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+
 controlnet = ControlNetModel.from_pretrained(CONTROLNET_ID, torch_dtype=dtype)
 pipe = StableDiffusionControlNetPipeline.from_pretrained(
-    BASE_MODEL, 
-    controlnet=controlnet, 
-    torch_dtype=dtype)
-pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
+    BASE_MODEL, controlnet=controlnet, torch_dtype=dtype
+)
+# pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
 if torch.cuda.is_available():
     pipe.to("cuda")
 pipe.load_lora_weights(LORA_PATH)
 if hasattr(pipe, "fuse_lora"):
     pipe.fuse_lora(lora_scale=LORA_SCALE)
+
+pipe.load_ip_adapter(
+    IP_ADAPTER_REPO,
+    subfolder="models",
+    weight_name=IP_ADAPTER_WEIGHT,
+)
+pipe.set_ip_adapter_scale(IP_SCALE)
 pipe.safety_checker = None
+
 gen = torch.Generator(device="cuda" if torch.cuda.is_available() else "cpu").manual_seed(SEED)
+
+ref_image = load_image(REF_IMAGE_PATH).convert("RGB")
+ip_embeds = pipe.prepare_ip_adapter_image_embeds(
+    ip_adapter_image=ref_image,
+    ip_adapter_image_embeds=None,
+    device=pipe.device,
+    num_images_per_prompt=1,
+    do_classifier_free_guidance=True,
+)
 
 valid_exts = {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
 files = [f for f in sorted(os.listdir(POSES_DIR)) if os.path.splitext(f)[1].lower() in valid_exts]
@@ -47,6 +74,7 @@ for name in files:
     pose_resized = pose.resize((nw, nh), Image.BICUBIC)
     img = pipe(
         prompt=PROMPT,
+        ip_adapter_image_embeds=ip_embeds,
         negative_prompt=NEGATIVE,
         image=pose_resized,
         num_inference_steps=STEPS,

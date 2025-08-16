@@ -24,13 +24,13 @@ F.scaled_dot_product_attention = _patched_sdpa
 from diffusers.loaders.lora_conversion_utils import _convert_non_diffusers_wan_lora_to_diffusers
 
 
-workspace_dir = "/workspace/hf_cache"
-os.environ["HF_HOME"] = "/workspace/hf_cache"
+# workspace_dir = "/workspace/hf_cache"
+# os.environ["HF_HOME"] = "/workspace/hf_cache"
 
 lora_path = hf_hub_download(
     repo_id="Kijai/WanVideo_comfy",
     filename="Lightx2v/lightx2v_I2V_14B_480p_cfg_step_distill_rank128_bf16.safetensors",
-    cache_dir=workspace_dir,
+    # cache_dir=workspace_dir,
 )
 
 print("Loading models")
@@ -40,7 +40,7 @@ t_hi = WanTransformer3DModel.from_single_file(
     torch_dtype=torch.bfloat16,
     config="Wan-AI/Wan2.2-I2V-A14B-Diffusers",
     subfolder="transformer",
-    cache_dir=workspace_dir
+    # cache_dir=workspace_dir
 )
 
 t_lo = WanTransformer3DModel.from_single_file(
@@ -49,7 +49,7 @@ t_lo = WanTransformer3DModel.from_single_file(
     torch_dtype=torch.bfloat16,
     config="Wan-AI/Wan2.2-I2V-A14B-Diffusers",
     subfolder="transformer",
-    cache_dir=workspace_dir,
+    # cache_dir=workspace_dir,
 )
 print("Loaded models")
 
@@ -58,7 +58,7 @@ max_memory={0: "48GB"}
 pipe = WanImageToVideoPipeline.from_pretrained(
     "Wan-AI/Wan2.2-I2V-A14B-Diffusers", 
     torch_dtype=torch.bfloat16, 
-    cache_dir=workspace_dir, 
+    # cache_dir=workspace_dir, 
     transformer=t_hi,
     transformer_2=t_lo,
     max_memory=max_memory,
@@ -73,7 +73,7 @@ onload_device = "cuda"
 lora_path = hf_hub_download(
     repo_id="Kijai/WanVideo_comfy",
     filename="Lightx2v/lightx2v_I2V_14B_480p_cfg_step_distill_rank128_bf16.safetensors",
-    cache_dir=workspace_dir
+    # cache_dir=workspace_dir
 )
 
 pipe.to("cuda")

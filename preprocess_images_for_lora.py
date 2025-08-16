@@ -36,7 +36,7 @@ import torch, os
 
 model_id = "p1atdev/wd-swinv2-tagger-v3-hf"
 processor = AutoImageProcessor.from_pretrained(model_id, trust_remote_code=True)
-model = AutoModelForImageClassification.from_pretrained(model_id)
+model = AutoModelForImageClassification.from_pretrained(model_id).to("cuda")
 
 images_dir = dst
 thresh = 0.35

@@ -2,3 +2,6 @@ sd-scripts/
 wd14_tagger_model
 hf_cache/
 .venv/
+raw_frames/
+30_images/
+videos/

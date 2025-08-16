@@ -1,1 +1,1 @@
-super_mecha_robotrigger, rating:general, solo, 1boy, male focus, armor, shadow, glowing, helmet, clenched hands, walking, running, road, tokusatsu
+super_mecha_robotrigger, rating:general, solo, standing, full body, from side, no humans, robot, mecha, science fiction, looking ahead, robot joints
