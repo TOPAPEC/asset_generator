@@ -148,7 +148,7 @@ out_dir = "raw_frames"
 last_im_number = get_last_frame_number(out_dir)
 
 for i, im in enumerate(frames):
-    to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + i:03d}.png"))
+    to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + 1 + i:03d}.png"))
 
 print("Starting generation")
 frames = pipe(
@@ -166,7 +166,7 @@ frames = pipe(
 last_im_number = get_last_frame_number(out_dir)
 
 for i, im in enumerate(frames):
-    to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + i:03d}.png"))
+    to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + 1 + i:03d}.png"))
 
 export_to_video(frames, "videos/output2.mp4", fps=16)
 
@@ -187,7 +187,7 @@ frames = pipe(
 last_im_number = get_last_frame_number(out_dir)
 
 for i, im in enumerate(frames):
-    to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + i:03d}.png"))
+    to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + 1 + i:03d}.png"))
 
 export_to_video(frames, "videos/output3.mp4", fps=16)
 
@@ -206,6 +206,6 @@ frames = pipe(
 last_im_number = get_last_frame_number(out_dir)
 
 for i, im in enumerate(frames):
-    to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + i:03d}.png"))
+    to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + 1 + i:03d}.png"))
 
 export_to_video(frames, "videos/output4.mp4", fps=16)

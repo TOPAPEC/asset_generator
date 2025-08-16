@@ -57,7 +57,7 @@ for name in sorted(os.listdir(images_dir)):
 
 import os
 root = images_dir
-trigger = "super_mecha_robotrigger"
+trigger = "M1N2N3Z4_K"
 for name in os.listdir(root):
     if not name.endswith(".txt"):
         continue

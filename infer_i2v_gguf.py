@@ -24,8 +24,8 @@ F.scaled_dot_product_attention = _patched_sdpa
 from diffusers.loaders.lora_conversion_utils import _convert_non_diffusers_wan_lora_to_diffusers
 
 
-# workspace_dir = "/workspace/hf_cache"
-# os.environ["HF_HOME"] = "/workspace/hf_cache"
+workspace_dir = "/workspace/hf_cache"
+os.environ["HF_HOME"] = "/workspace/hf_cache"
 
 lora_path = hf_hub_download(
     repo_id="Kijai/WanVideo_comfy",
@@ -95,7 +95,7 @@ img = load_image(Image.open("image.png")).convert("RGB")
 print("Starting generation")
 frames = pipe(
     image=img,
-    prompt="A 360 degrees view of the character running forward. Camera is moving fast and is able to capture full side view, full front view and full back view",
+    prompt="A 360 degrees view of the character standing still. Camera is moving fast and is able to capture full side view, full front view and full back view",
     negative_prompt="",
     num_inference_steps=4,
     guidance_scale=1.0,
@@ -107,6 +107,7 @@ frames = pipe(
 export_to_video(frames, "output.mp4", fps=16)
 
 out_dir = "raw_frames"
+os.makedirs(out_dir, exist_ok=True)
 def to_pil(im):
     if isinstance(im, Image.Image):
         return im.convert("RGB")

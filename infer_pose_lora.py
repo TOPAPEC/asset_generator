@@ -5,22 +5,22 @@ from diffusers import StableDiffusionControlNetPipeline, ControlNetModel, UniPCM
 from transformers import CLIPVisionModelWithProjection
 from diffusers.utils import load_image
 
-BASE_MODEL = "sam749/Photon-v1"
+BASE_MODEL = "digiplay/Photon_v1"
 CONTROLNET_ID = "lllyasviel/control_v11p_sd15_openpose"
-LORA_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "sd-scripts", "out", "char_lora.safetensors"))
+LORA_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), ".", "out_lora", "char_lora.safetensors"))
 POSES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "poses"))
 OUT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "outputs", "pose_lora"))
-PROMPT = "super_mecha_robotrigger, rating:general, cyberpunk, art, anime, 1girl, solo, red eyes, standing, full body, no humans, shadow, robot, mecha, science fiction, looking ahead, robot joints, open hands, humanoid robot"
+PROMPT = "M1N2N3Z4_K, rating:general, solo, simple background, white background, 1boy, gloves, red eyes, standing, full body, male focus, boots, armor, helmet, outstretched arms, shoulder armor, gauntlets, pelvic curtain, brown gloves, spikes, pauldrons, breastplate, armored boots, greaves, full armor, helm"
 NEGATIVE = "worst quality, low quality, bad anatomy, bad hands, bad body, missing fingers, extra digit, three legs, three arms, fewer digits, blurry, text, watermark, lowres, bad anatomy, bad hands, extra fingers, missing fingers, deformed, detailed background, multiple characters"
 GUIDANCE = 4.0
 STEPS = 30
 LORA_SCALE = 1.0
 SEED = 42
-TARGET_LONG = 1024
+TARGET_LONG = 512
 
 IP_ADAPTER_REPO = "h94/IP-Adapter"
 IP_ADAPTER_WEIGHT = "ip-adapter_sd15.safetensors"  # SD1.5 adapter
-IP_SCALE = 0.7  # 0.6–0.8
+IP_SCALE = 0.0  # 0.6–0.8
 REF_IMAGE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "image.png"))
 
 workspace_dir = "/workspace/hf_cache"
