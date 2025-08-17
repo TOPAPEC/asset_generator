@@ -20,7 +20,7 @@ PROJECT_DIR="$PWD"
 PARENT_DIR="$(dirname "$PROJECT_DIR")"
 SD_SCRIPTS_DIR="$PARENT_DIR/sd-scripts"
 
-PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python infer_i2v_gguf.py
+PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python infer_decomposed.py
 python wanpipeline.py
 python preprocess_images_for_lora.py
 
@@ -33,9 +33,9 @@ if [ ! -d .venv ]; then
   python -m venv .venv
 fi
 . .venv/bin/activate
-# pip install -U pip
-# pip install -U -r requirements.txt diffusers transformers accelerate safetensors torchvision
-# pip install "numpy<2"
+pip install -U pip
+pip install -U -r requirements.txt diffusers transformers accelerate safetensors torchvision
+pip install "numpy<2"
 
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True,max_split_size_mb:256
 accelerate launch --num_processes=1 train_network.py \
