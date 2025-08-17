@@ -1,0 +1,14 @@
+[[prompts]]
+prompt = "M1N2N3Z4_K, full body, character standing, studio lighting, detailed skin, intricate hair, crisp edges, 35mm, (best quality), (masterpiece)"
+negative_prompt = "lowres, blurry, deformed, extra limbs, bad hands, text, watermark, logo"
+seed = 42
+
+[[prompts]]
+prompt = "M1N2N3Z4_K, full body dynamic pose, action scene, dramatic lighting, cinematic, sharp details, photorealistic"
+negative_prompt = "nsfw, nudity, lowres, artifacts, jpeg, watermark"
+seed = 42
+
+[[prompts]]
+prompt = "M1N2N3Z4_K, portrait, headshot, precise facial features, sharp eyes, skin texture, neutral background"
+negative_prompt = "blurry eyes, extra fingers, distortions, text"
+seed = 42

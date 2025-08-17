@@ -2,7 +2,7 @@ torch==2.4.1
 torchvision
 accelerate>=0.31.0
 transformers>=4.55.0
-diffusers @ git+https://github.com/huggingface/diffusers
+diffusers @ git+https://github.com/linoytsaban/diffusers.git@wan22-lightx2v
 gguf>=0.2.0
 huggingface_hub
 imageio

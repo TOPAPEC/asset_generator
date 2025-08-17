@@ -33,6 +33,18 @@ lora_path = hf_hub_download(
     # cache_dir=workspace_dir,
 )
 
+lora_high_path = hf_hub_download(
+    repo_id="Kijai/WanVideo_comfy",
+    filename="Wan22-Lightning/Wan2.2-Lightning_I2V-A14B-4steps-lora_HIGH_fp16.safetensors"
+)
+
+lora_low_path = hf_hub_download(
+    repo_id="Kijai/WanVideo_comfy",
+    filename="Wan22-Lightning/Wan2.2-Lightning_I2V-A14B-4steps-lora_LOW_fp16.safetensors"
+)
+
+
+
 print("Loading models")
 t_hi = WanTransformer3DModel.from_single_file(
     "https://huggingface.co/bullerwins/Wan2.2-I2V-A14B-GGUF/blob/main/wan2.2_i2v_high_noise_14B_Q8_0.gguf",
@@ -78,24 +90,45 @@ lora_path = hf_hub_download(
 
 pipe.to("cuda")
 
-pipe.load_lora_weights(lora_path, adapter_name='lightx2v_t1')
-pipe.set_adapters(["lightx2v_t1"], adapter_weights=[3.0])
+pipe.load_lora_weights(
+   "Kijai/WanVideo_comfy", 
+    weight_name="Lightx2v/lightx2v_I2V_14B_480p_cfg_step_distill_rank128_bf16.safetensors", 
+    adapter_name="lightning"
+)
+kwargs = {}
+kwargs["load_into_transformer_2"] = True
+pipe.load_lora_weights(
+  "Kijai/WanVideo_comfy", 
+            weight_name="Lightx2v/lightx2v_I2V_14B_480p_cfg_step_distill_rank128_bf16.safetensors", 
+    adapter_name="lightning_2", **kwargs
+)
+pipe.set_adapters(["lightning", "lightning_2"], adapter_weights=[3., 1.5])
+# pipe.fuse_lora(adapter_names=["lightning"], lora_scale=3., components=["transformer"])
+# pipe.fuse_lora(adapter_names=["lightning_2"], lora_scale=1., components=["transformer_2"])
+# pipe.unload_lora_weights()
 
-if hasattr(pipe, "transformer_2") and pipe.transformer_2 is not None:
-    org_state_dict = safetensors.torch.load_file(lora_path)
-    converted_state_dict = _convert_non_diffusers_wan_lora_to_diffusers(org_state_dict)
-    pipe.transformer_2.load_lora_adapter(converted_state_dict, adapter_name="lightx2v")
-    pipe.transformer_2.set_adapters(["lightx2v"], weights=[1.5])
+# org_state_dict = safetensors.torch.load_file(lora_high_path)
+# converted_state_dict = _convert_non_diffusers_wan_lora_to_diffusers(org_state_dict)
+# pipe.transformer.load_lora_adapter(org_state_dict, adapter_name='lightx2v_t1')
+# pipe.transformer.set_adapters(["lightx2v_t1"], weights=[3.0])
+
+
+
+# if hasattr(pipe, "transformer_2") and pipe.transformer_2 is not None:
+#     org_state_dict = safetensors.torch.load_file(lora_low_path)
+#     converted_state_dict = _convert_non_diffusers_wan_lora_to_diffusers(org_state_dict)
+#     pipe.transformer_2.load_lora_adapter(org_state_dict, adapter_name="lightx2v")
+#     pipe.transformer_2.set_adapters(["lightx2v"], weights=[1.5])
 
 # pipe.scheduler.config["prediction_type"] = "epsilon"
-pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config, flow_shift=8.0)
+# pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config, flow_shift=8.0)
 
 img = load_image(Image.open("image.png")).convert("RGB")
 
 print("Starting generation")
 frames = pipe(
     image=img,
-    prompt="A 360 degrees view of the character standing still. Camera is moving fast and is able to capture full side view, full front view and full back view",
+    prompt="A 360 degrees view of the character (camera MUST circle around the character), character begins to run forward and is running until the end. Camera is moving fast and is able to capture full front view, side view and full back view. All animations are smooth and detailed",
     negative_prompt="",
     num_inference_steps=4,
     guidance_scale=1.0,
