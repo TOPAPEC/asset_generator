@@ -1,3 +1,8 @@
+[general]
+sample_every_n_steps = 500
+sample_sampler = "ddim"
+sample_seed = 42
+
 [[prompts]]
 prompt = "M1N2N3Z4_K, full body, character standing, studio lighting, detailed skin, intricate hair, crisp edges, 35mm, (best quality), (masterpiece)"
 negative_prompt = "lowres, blurry, deformed, extra limbs, bad hands, text, watermark, logo"

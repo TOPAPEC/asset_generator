@@ -17,8 +17,6 @@ from diffusers.utils import load_image, export_to_video
 from diffusers.hooks import apply_group_offloading
 import diffusers
 
-from lib.WanVideoToVideo import WanVideoToVideo
-
 diffusers.logging.set_verbosity_info()
 
 _orig_sdpa = F.scaled_dot_product_attention

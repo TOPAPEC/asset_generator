@@ -101,10 +101,10 @@ pipe = WanImageToVideoPipeline.from_pretrained(
 
 offload_device = "cpu"
 onload_device = "cuda"
-# pipe.vae.enable_group_offload(onload_device=onload_device, offload_device=offload_device, offload_type="leaf_level")
-# pipe.transformer.enable_group_offload(onload_device=onload_device, offload_device=offload_device, offload_type="leaf_level")
-# pipe.transformer_2.enable_group_offload(onload_device=onload_device, offload_device=offload_device, offload_type="leaf_level")
-# apply_group_offloading(pipe.text_encoder, onload_device=onload_device, offload_device=offload_device, offload_type="block_level", num_blocks_per_group=2)
+pipe.vae.enable_group_offload(onload_device=onload_device, offload_device=offload_device, offload_type="leaf_level")
+pipe.transformer.enable_group_offload(onload_device=onload_device, offload_device=offload_device, offload_type="leaf_level")
+pipe.transformer_2.enable_group_offload(onload_device=onload_device, offload_device=offload_device, offload_type="leaf_level")
+apply_group_offloading(pipe.text_encoder, onload_device=onload_device, offload_device=offload_device, offload_type="block_level", num_blocks_per_group=4)
 lora_path = hf_hub_download(
     repo_id="Kijai/WanVideo_comfy",
     filename="Lightx2v/lightx2v_I2V_14B_480p_cfg_step_distill_rank128_bf16.safetensors",
@@ -113,17 +113,19 @@ lora_path = hf_hub_download(
 
 pipe.to("cuda")
 
-pipe.load_lora_weights(lora_path, adapter_name='lightx2v_t1')
-pipe.set_adapters(["lightx2v_t1"], adapter_weights=[3.0])
-
-if hasattr(pipe, "transformer_2") and pipe.transformer_2 is not None:
-    org_state_dict = safetensors.torch.load_file(lora_path)
-    converted_state_dict = _convert_non_diffusers_wan_lora_to_diffusers(org_state_dict)
-    pipe.transformer_2.load_lora_adapter(converted_state_dict, adapter_name="lightx2v")
-    pipe.transformer_2.set_adapters(["lightx2v"], weights=[1.5])
-
-# pipe.scheduler.config["prediction_type"] = "epsilon"
-pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config, flow_shift=8.0)
+pipe.load_lora_weights(
+   "Kijai/WanVideo_comfy", 
+    weight_name="Lightx2v/lightx2v_I2V_14B_480p_cfg_step_distill_rank128_bf16.safetensors", 
+    adapter_name="lightning"
+)
+kwargs = {}
+kwargs["load_into_transformer_2"] = True
+pipe.load_lora_weights(
+  "Kijai/WanVideo_comfy", 
+            weight_name="Lightx2v/lightx2v_I2V_14B_480p_cfg_step_distill_rank128_bf16.safetensors", 
+    adapter_name="lightning_2", **kwargs
+)
+pipe.set_adapters(["lightning", "lightning_2"], adapter_weights=[3., 1.5])
 
 fimg, limg = get_first_and_last_frame("raw_frames/")
 

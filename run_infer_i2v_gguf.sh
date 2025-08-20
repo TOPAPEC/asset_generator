@@ -14,14 +14,15 @@ fi
 export HF_HOME="/workspace/hf_cache/"
 export TRANSFORMERS_CACHE="/workspace/hf_cache/transformers/"
 pip install -r requirements.txt
+# pip install "git+https://github.com/facebookresearch/segment-anything-2"
 
 cd "$(dirname "$0")"
 PROJECT_DIR="$PWD"
 PARENT_DIR="$(dirname "$PROJECT_DIR")"
 SD_SCRIPTS_DIR="$PARENT_DIR/sd-scripts"
 
-PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python infer_decomposed.py
-python wanpipeline.py
+# PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python infer_i2v_gguf.py
+# python wanpipeline.py
 python preprocess_images_for_lora.py
 
 if [ ! -d "$SD_SCRIPTS_DIR" ]; then
@@ -45,7 +46,7 @@ accelerate launch --num_processes=1 train_network.py \
   --save_model_as safetensors \
   --mixed_precision fp16 \
   --sdpa \
-  --sample_every_n_steps 500 \
+  --sample_every_n_steps 250 \
   --sample_prompts ../asset_generator/sample_prompts.toml \
   --gradient_checkpointing \
   --network_module networks.lora \
