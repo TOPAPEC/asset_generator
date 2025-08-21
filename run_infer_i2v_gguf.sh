@@ -23,7 +23,7 @@ SD_SCRIPTS_DIR="$PARENT_DIR/sd-scripts"
 
 # PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python infer_i2v_gguf.py
 # python wanpipeline.py
-# python preprocess_images_for_lora.py
+python preprocess_images_for_lora.py
 
 if [ ! -d "$SD_SCRIPTS_DIR" ]; then
   git clone https://github.com/kohya-ss/sd-scripts.git "$SD_SCRIPTS_DIR"
@@ -51,7 +51,7 @@ accelerate launch --num_processes=1 train_network.py \
   --gradient_checkpointing \
   --network_module networks.lora \
   --network_dim 32 \
-  --network_alpha 32 \
+  --network_alpha 16 \
   --train_data_dir ../asset_generator \
   --caption_extension .txt \
   --resolution 512 \

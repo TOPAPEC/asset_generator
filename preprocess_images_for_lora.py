@@ -295,215 +295,182 @@ def _composite_on_random_bg(img: Image.Image, mask_L: Image.Image, bg_paths: Lis
     out = Image.alpha_composite(bg.convert("RGBA"), fg)
     return out.convert("RGB")
 
-def isolate_with_yolo_and_replace_bg(
-    image_paths: List[str],
-    backgrounds_dir: str = "backgrounds",
-    out_dir: str = "with_bg",
-    yolo_weights: str = "yolov8n-seg.pt",   # n/m/l/x variants; custom .pt also works
-    conf: float = 0.25,                     # lower if missed
-    feather_px: int = 2,
-    prefer_person_class: bool = True,       # prioritize person-like classes if present
-    replace_original: bool = False
-) -> List[str]:
-    """
-    For each image: run YOLOv8-Seg, pick best instance (size * centrality * conf),
-    composite onto a random background, and save.
-    """
-    os.makedirs(out_dir, exist_ok=True)
-    bg_paths = _collect_backgrounds(backgrounds_dir)
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = YOLO(yolo_weights)  # downloads if needed
-
-    outputs = []
-    for p in image_paths:
-        with Image.open(p) as im:
-            im = im.convert("RGB")
-            W, H = im.size
-
-        # Ultralytics API: returns list of Results; take first
-        results = model.predict(source=p, imgsz=max(640, max(W, H)), conf=conf, verbose=False, device=0 if device=="cuda" else None)
-        if not results:
-            comp = im
-        else:
-            r = results[0]
-            comp = im
-            best_idx = None
-            best_score = -1e9
-
-            # If no masks, keep original
-            if r.masks is not None and r.masks.data is not None and len(r.masks.data) > 0:
-                # masks.data: [N, Hm, Wm] (downsampled), boxes.xyxy: [N,4], probs/conf: r.boxes.conf
-                masks = r.masks.data.cpu().numpy()  # float [0..1]
-                boxes = r.boxes.xyxy.cpu().numpy() if r.boxes is not None else np.zeros((masks.shape[0], 4), dtype=np.float32)
-                confs = r.boxes.conf.cpu().numpy() if r.boxes is not None else np.ones((masks.shape[0],), dtype=np.float32)
-                clses = r.boxes.cls.cpu().numpy().astype(int) if r.boxes is not None and r.boxes.cls is not None else np.zeros((masks.shape[0],), dtype=int)
-
-                # Upsample masks to image size
-                # r.masks.data is aligned to r.masks.orig_shape; Ultralytics also has r.masks.xy if polygon desired
-                for i in range(masks.shape[0]):
-                    m = masks[i]
-                    # Resize mask to (H, W)
-                    m_img = Image.fromarray((m * 255).astype(np.uint8), mode="L").resize((W, H), Image.BICUBIC)
-                    area = float(np.array(m_img).sum()) / (255.0 * W * H + 1e-9)  # 0..1
-                    if area < 0.02 or area > 0.95:
-                        continue  # skip tiny or huge
-
-                    box = boxes[i] if i < len(boxes) else np.array([0,0,W,H], dtype=np.float32)
-                    central = _centrality_score(tuple(map(float, box)), W, H)
-                    cls_bonus = 0.15 if (prefer_person_class and (clses[i] == 0)) else 0.0  # COCO class 0 = person
-                    score = (math.log(area + 1e-6) * 0.8) + (central * 1.0) + (float(confs[i]) * 0.8) + cls_bonus
-                    if score > best_score:
-                        best_score = score
-                        best_idx = i
-                        best_mask_img = m_img
-
-                if best_idx is not None:
-                    comp = _composite_on_random_bg(im, best_mask_img, bg_paths, feather_px=feather_px)
-
-        if replace_original:
-            out_path = p
-        else:
-            base = os.path.splitext(os.path.basename(p))[0]
-            out_path = os.path.join(out_dir, f"{base}.jpg")
-        comp.save(out_path, quality=95, subsampling=1)
-        outputs.append(out_path)
-    return outputs
-
-
-# =========================================================
-#          WD tagger + size handling
-# =========================================================
-
-def load_wd_eva02_v3(dev: Optional[str] = None):
-    d = dev or device_str()
-    dtype = torch.float16 if d == "cuda" else torch.float32
-    proc = AutoImageProcessor.from_pretrained("p1atdev/wd-swinv2-tagger-v3-hf", trust_remote_code=True)
-    model = AutoModelForImageClassification.from_pretrained("p1atdev/wd-swinv2-tagger-v3-hf").to(d, dtype=dtype).eval()
-    return model, proc, d, dtype
-
-
-GENERIC_DROP = {
-    "person","people","simple_background",
-    "artist_name","copyright_name",
-    "rating:safe","rating:questionable","rating:explicit",
-    "photo"
-}
-
-from typing import List, Tuple, Dict
-from PIL import Image
-import torch
-from transformers import AutoImageProcessor, AutoModelForImageClassification
-
 @torch.no_grad()
-def wd_tags_for_images(
-    image_paths: List[str],
-    model: AutoModelForImageClassification,
-    processor: AutoImageProcessor,
-    device: str,
-    torch_dtype: torch.dtype,
-    general_threshold: float = 0.35,
-    character_threshold: float = 0.85,
-    max_tags: int = 64
-) -> Dict[str, List[Tuple[str, float]]]:
-    out: Dict[str, List[Tuple[str, float]]] = {}
-    for p in image_paths:
-        img = Image.open(p).convert("RGB")
-        inputs = processor.preprocess(img, return_tensors="pt")
-        inputs = {k: v.to(device) for k, v in inputs.items()}
-        if "pixel_values" in inputs: inputs["pixel_values"] = inputs["pixel_values"].to(torch_dtype)
-        probs = torch.sigmoid(model(**inputs).logits[0].float())
-        pairs: List[Tuple[str, float]] = []
-        for i, s in enumerate(probs):
-            lab = model.config.id2label[i]
-            if lab.startswith("rating:"): continue
-            thr = character_threshold if lab.startswith("character:") else general_threshold
-            sc = float(s.item())
-            if sc >= thr:
-                tag = lab.split(":",1)[1] if ":" in lab else lab
-                tag = tag.strip().lower().replace(" ", "_")
-                pairs.append((tag, sc))
-        pairs.sort(key=lambda x: x[1], reverse=True)
-        out[p] = pairs[:max_tags]
-    return out
+def find_closest_images_to_text(image_paths: List[str], text_query: str, top_k: int = 3, batch_size: int = 16) -> List[str]:
+    if len(image_paths) <= top_k:
+        return image_paths
+    
+    model, proc, dev = _siglip2_model_device()
+    
+    text_inputs = proc(text=[text_query], return_tensors="pt").to(dev)
+    text_emb = model.get_text_features(**text_inputs)
+    text_emb = torch.nn.functional.normalize(text_emb.float(), dim=-1)
+    
+    image_embs = []
+    for i in range(0, len(image_paths), batch_size):
+        batch_paths = image_paths[i:i+batch_size]
+        batch_images = []
+        for path in batch_paths:
+            with Image.open(path) as img:
+                batch_images.append(img.convert("RGB"))
+        
+        inputs = proc(images=batch_images, return_tensors="pt").to(dev)
+        img_emb = model.get_image_features(**inputs)
+        img_emb = torch.nn.functional.normalize(img_emb.float(), dim=-1)
+        image_embs.append(img_emb.cpu())
+    
+    all_image_embs = torch.cat(image_embs, dim=0)
+    similarities = (all_image_embs @ text_emb.cpu().T).squeeze(1)
+    
+    indexed_sims = [(sim.item(), i, path) for i, (sim, path) in enumerate(zip(similarities, image_paths))]
+    indexed_sims.sort(reverse=True)
+    
+    return [path for _, _, path in indexed_sims[:top_k]]
 
-import asyncio
-import aiohttp
-import json
-from typing import Dict, List, Tuple
-import base64
-from io import BytesIO
-
-async def refine_tags_with_openrouter(
-    base_tags_map: Dict[str, List[Tuple[str, float]]],
+async def generate_character_traits(
+    closeup_paths: List[str],
+    fullbody_paths: List[str], 
     api_key: str,
     model: str = "baidu/ernie-4.5-vl-28b-a3b"
+) -> str:
+    
+    async with aiohttp.ClientSession() as session:
+        images_data = []
+        for path in closeup_paths + fullbody_paths:
+            with open(path, "rb") as f:
+                img_data = f.read()
+            img_b64 = base64.b64encode(img_data).decode()
+            images_data.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}})
+        
+        print(f"Selected images for character analysis:")
+        for path in closeup_paths:
+            print(f"  Closeup: {path}")
+        for path in fullbody_paths:
+            print(f"  Fullbody: {path}")
+        
+        prompt = """Analyze these 6 images of the same character and identify the most consistent, defining traits that should always be present in a LoRA training dataset.
+
+Focus on STABLE IDENTITY TRAITS that never change:
+- Hair color and style (e.g., "long blonde hair", "short black hair with bangs")
+- Eye color (e.g., "blue eyes", "brown eyes")
+- Permanent body features (scars, tattoos, body type, skin tone)
+- Permanent modifications (mechanical limbs, prosthetics, etc.)
+- Basic character class (girl, woman, man, boy, character)
+
+DO NOT include:
+- Clothing/accessories that vary between images
+- Expressions or poses
+- Backgrounds or scenes
+- Temporary items
+
+Return ONLY a comma-separated list of the core character traits, make it as consice as possible like:
+"girl, long blonde hair, blue eyes, pale skin, slim build"
+
+Character traits:"""
+
+        content = [{"type": "text", "text": prompt}] + images_data
+        
+        payload = {
+            "model": model,
+            "messages": [{"role": "user", "content": content}],
+            "max_tokens": 100,
+            "temperature": 0.1
+        }
+        
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        async with session.post("https://openrouter.ai/api/v1/chat/completions", 
+                              json=payload, headers=headers) as resp:
+            if resp.status == 200:
+                result = await resp.json()
+                return result["choices"][0]["message"]["content"].strip()
+            else:
+                print(f"API error: {resp.status}")
+                return "character"
+
+async def generate_variable_details(
+    image_path: str,
+    api_key: str,
+    model: str = "baidu/ernie-4.5-vl-28b-a3b"
+) -> str:
+    
+    async with aiohttp.ClientSession() as session:
+        with open(image_path, "rb") as f:
+            img_data = f.read()
+        
+        img_b64 = base64.b64encode(img_data).decode()
+        
+        prompt = """Describe the VARIABLE details in this image that can change between training images:
+
+Include only:
+- Clothing/outfit details (but only if clearly visible and significant)
+- Accessories (glasses, hats, jewelry - mark as optional)
+- Background/scene (indoors, outdoors, specific location)
+- Notable pose or expression (if very distinctive)
+
+Keep it as concise as possible to fit into limited clip model context window. Use natural language. If nothing distinctive is visible, return empty string.
+
+Variable details:"""
+
+        payload = {
+            "model": model,
+            "messages": [{
+                "role": "user", 
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}}
+                ]
+            }],
+            "max_tokens": 50,
+            "temperature": 0.3
+        }
+        
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        async with session.post("https://openrouter.ai/api/v1/chat/completions", 
+                              json=payload, headers=headers) as resp:
+            if resp.status == 200:
+                result = await resp.json()
+                return result["choices"][0]["message"]["content"].strip()
+            else:
+                return ""
+
+async def generate_prompts_two_stage(
+    image_paths: List[str],
+    trigger_word: str,
+    api_key: str,
+    model: str = "google/gemini-2.5-flash"
 ) -> Dict[str, str]:
+    
+    closeup_paths = find_closest_images_to_text(image_paths, "high quality close up shot", top_k=3)
+    fullbody_paths = find_closest_images_to_text(image_paths, "fullbody high quality shot", top_k=3)
+    
+    character_traits = await generate_character_traits(closeup_paths, fullbody_paths, api_key, model)
     
     semaphore = asyncio.Semaphore(8)
     
-    async def refine_single_image(session: aiohttp.ClientSession, image_path: str, tags: List[Tuple[str, float]]) -> Tuple[str, str]:
+    async def process_image(image_path: str) -> Tuple[str, str]:
         async with semaphore:
-            try:
-                with open(image_path, "rb") as f:
-                    img_data = f.read()
-                
-                img_b64 = base64.b64encode(img_data).decode()
-                current_tags = ", ".join([tag for tag, _ in tags[:20]])
-                
-                prompt = f"""Analyze this image and refine these tags for Stable Diffusion 1.5:
-Current tags: {current_tags}
-
-Instructions:
-- Convert danbooru tags to natural language (e.g., "1girl" → "woman", "long_hair" → "long hair")
-- Keep it concise (under 77 tokens for CLIP)
-- Focus on visual elements: pose, clothing, hair, expression, style
-- Remove meta tags, ratings, artist names
-- Use SD 1.5 compatible descriptors
-- Prioritize most important visual features
-
-Return only the refined tag string, comma-separated:"""
-
-                payload = {
-                    "model": model,
-                    "messages": [
-                        {
-                            "role": "user", 
-                            "content": [
-                                {"type": "text", "text": prompt},
-                                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}}
-                            ]
-                        }
-                    ],
-                    "max_tokens": 150,
-                    "temperature": 0.3
-                }
-                
-                headers = {
-                    "Authorization": f"Bearer {api_key}",
-                    "Content-Type": "application/json"
-                }
-                
-                async with session.post("https://openrouter.ai/api/v1/chat/completions", 
-                                       json=payload, headers=headers) as resp:
-                    if resp.status == 200:
-                        result = await resp.json()
-                        refined = result["choices"][0]["message"]["content"].strip()
-                        return image_path, refined
-                    else:
-                        print(f"API error for {image_path}: {resp.status}")
-                        fallback = ", ".join([tag.replace("_", " ") for tag, _ in tags[:10]])
-                        return image_path, fallback
-                        
-            except Exception as e:
-                print(f"Error processing {image_path}: {e}")
-                fallback = ", ".join([tag.replace("_", " ") for tag, _ in tags[:10]])
-                return image_path, fallback
+            variable_details = await generate_variable_details(image_path, api_key, model)
+            
+            prompt_parts = [trigger_word, character_traits]
+            if variable_details.strip():
+                prompt_parts.append(variable_details)
+            
+            final_prompt = ", ".join(part.strip() for part in prompt_parts if part.strip())
+            return image_path, final_prompt
     
-    async with aiohttp.ClientSession() as session:
-        tasks = [refine_single_image(session, path, tags) for path, tags in base_tags_map.items()]
-        results = await asyncio.gather(*tasks)
+    tasks = [process_image(path) for path in image_paths]
+    results = await asyncio.gather(*tasks)
     
     return dict(results)
+
 
 def save_refined_tags(images: List[str], refined_tags_map: Dict[str, str], trigger: str) -> None:
     for p in images:
@@ -533,7 +500,7 @@ def save_tags(images: List[str], tags_map: Dict[str, str], trigger: str) -> None
 #                         MAIN
 # =========================================================
 
-def main():
+async def main():
     ap = argparse.ArgumentParser(description="LoRA Preprocess: select diverse frames, cut with SAM2, replace backgrounds, tag with WD EVA02 v3, refine with GLM-4.5v.")
     ap.add_argument("--src_frames_dir", type=str, default="raw_frames")
     ap.add_argument("--sampled_dir", type=str, default="30_images")
@@ -551,7 +518,7 @@ def main():
     ap.add_argument("--wd_general_thr", type=float, default=0.35)
     ap.add_argument("--wd_character_thr", type=float, default=0.85)
     ap.add_argument("--max_tags", type=int, default=64)
-    ap.add_argument("--trigger", type=str, default="M1N2N3Z4_K")
+    ap.add_argument("--trigger", type=str, default="Ohwjfdk")
     ap.add_argument("--seed", type=int, default=42)
     args = ap.parse_args()
 
@@ -577,27 +544,18 @@ def main():
 
 
     # 3) WD EVA02 v3 base tags (auto image size)
-    wd_model, wd_proc, dev, dtype = load_wd_eva02_v3()
-
-    base_tags_map = wd_tags_for_images(
-        sampled, wd_model, wd_proc, dev, dtype,
-        general_threshold=args.wd_general_thr,
-        character_threshold=args.wd_character_thr,
-        max_tags=args.max_tags
+    
+    prompts_map = await generate_prompts_two_stage(
+        sampled,
+        trigger_word=args.trigger,
+        api_key=os.environ["OPENROUTER_API_KEY"]
     )
-
-
-    # 4) Refine tags with OpenRouter (replace the save_tags call)
-    openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
-    if openrouter_api_key:
-        print("[OpenRouter] Refining tags...")
-        refined_tags_map = asyncio.run(refine_tags_with_openrouter(base_tags_map, openrouter_api_key))
-        save_refined_tags(sampled, refined_tags_map, args.trigger)
-        print("[Save] refined tags saved")
-    else:
-        save_tags(sampled, base_tags_map, args.trigger)
-    print("[Save] base tags saved (no OpenRouter key)")
+    
+    for image_path, prompt in prompts_map.items():
+        txt_path = os.path.splitext(image_path)[0] + ".txt"
+        with open(txt_path, "w", encoding="utf-8") as f:
+            f.write(prompt)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.gather(main())
