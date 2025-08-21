@@ -1,0 +1,24 @@
+[
+    {
+      "prompt": "M1N2N3Z4_K, 1boy, character standing, studio lighting, detailed skin, intricate hair, crisp edges, 35mm, (best quality), (masterpiece)",
+      "negative_prompt": "nsfw, nudity, lowres, blurry, deformed, extra limbs, bad hands, text, watermark, logo",
+      "seed": 42,
+      "width": 512,
+      "height": 512
+    },
+    {
+      "prompt": "M1N2N3Z4_K, 1boy, action scene, sfw, dramatic lighting, cinematic, sharp details, photorealistic",
+      "negative_prompt": "nsfw, nudity, lowres, artifacts, jpeg, watermark",
+      "seed": 123,
+      "width": 512,
+      "height": 512
+    },
+    {
+      "prompt": "M1N2N3Z4_K, 1boy, portrait, headshot, precise facial features, sharp eyes, skin texture, neutral background",
+      "negative_prompt": "nsfw, nudity, blurry eyes, extra fingers, distortions, text",
+      "seed": 2025,
+      "width": 512,
+      "height": 512
+    }
+  ]
+  

@@ -47,11 +47,11 @@ accelerate launch --num_processes=1 train_network.py \
   --mixed_precision fp16 \
   --sdpa \
   --sample_every_n_steps 250 \
-  --sample_prompts ../asset_generator/sample_prompts.toml \
+  --sample_prompts ../asset_generator/sample_prompts.json \
   --gradient_checkpointing \
   --network_module networks.lora \
-  --network_dim 64 \
-  --network_alpha 16 \
+  --network_dim 32 \
+  --network_alpha 32 \
   --train_data_dir ../asset_generator \
   --caption_extension .txt \
   --resolution 512 \

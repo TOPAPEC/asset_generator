@@ -15,6 +15,7 @@ from transformers import (
     AutoModel,
     AutoModelForCausalLM,
 )
+from transformers import AutoProcessor, AutoModel
 
 # =========================================================
 #                 Utilities & Determinism
@@ -61,6 +62,53 @@ def phash(img: Image.Image, hash_size: int = 8, highfreq_factor: int = 4) -> int
 def hamming(a: int, b: int) -> int:
     return (a ^ b).bit_count()
 
+@torch.no_grad()
+def filter_by_pickscore(image_paths: List[str], keep_ratio: float = 0.8, batch_size: int = 8) -> List[str]:
+    if len(image_paths) <= 1:
+        return image_paths
+    
+    device = device_str()
+    processor = AutoProcessor.from_pretrained("yuvalkirstain/PickScore_v1")
+    model = AutoModel.from_pretrained("yuvalkirstain/PickScore_v1").to(device).eval()
+    
+    scores = []
+    for i in range(0, len(image_paths), batch_size):
+        batch_paths = image_paths[i:i+batch_size]
+        images = []
+        for path in batch_paths:
+            with Image.open(path) as img:
+                images.append(img.convert("RGB"))
+        
+        inputs = processor(
+            images=images,
+            text=[""] * len(images),
+            return_tensors="pt",
+            padding=True
+        )
+        
+        image_inputs = {k: v.to(device) for k, v in inputs.items() if k in ['pixel_values']}
+        text_inputs = {k: v.to(device) for k, v in inputs.items() if k in ['input_ids', 'attention_mask']}
+        
+        image_embs = model.get_image_features(**image_inputs)
+        text_embs = model.get_text_features(**text_inputs)
+        
+        image_embs = image_embs / image_embs.norm(dim=-1, keepdim=True)
+        text_embs = text_embs / text_embs.norm(dim=-1, keepdim=True)
+        
+        logits_per_image = model.logit_scale.exp() * (image_embs @ text_embs.t())
+        probs = torch.softmax(logits_per_image, dim=-1)
+        batch_scores = probs.diag().cpu().tolist()
+        scores.extend(batch_scores)
+    
+    del model, processor
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    
+    num_keep = max(1, int(len(image_paths) * keep_ratio))
+    indexed_scores = [(score, i, path) for i, (score, path) in enumerate(zip(scores, image_paths))]
+    indexed_scores.sort(reverse=True)
+    
+    return [path for _, _, path in indexed_scores[:num_keep]]
 # =========================================================
 #      Stage 2: SigLIP2 semantic diversity (FPS-k)
 # =========================================================
@@ -117,6 +165,7 @@ def select_frames_two_phase(
     phash_hamming_thresh: int = 10,
     target_k: int = 20,
     siglip_batch: int = 16,
+    pickscore_ratio: float = 0.8,
 ) -> List[str]:
     os.makedirs(dst_dir, exist_ok=True)
     # stride pre-sampling
@@ -131,10 +180,16 @@ def select_frames_two_phase(
         candidates.append((i, os.path.join(src_dir, name)))
     if not candidates:
         return []
+    
+    candidate_paths = [sp for idx, sp in candidates]
+    
+    # PickScore filtering (top 80%)
+    filtered_paths = filter_by_pickscore(candidate_paths, keep_ratio=pickscore_ratio)
+    filtered_candidates = [(idx, sp) for idx, sp in candidates if sp in set(filtered_paths)]
 
     # Stage 1: pHash near-dup prune while copying
     stage1_paths, stage1_hashes = [], []
-    for idx, sp in candidates:
+    for idx, sp in filtered_candidates:
         with Image.open(sp) as img:
             hh = phash(img)
             if all(hamming(hh, prev) >= phash_hamming_thresh for prev in stage1_hashes):
@@ -274,39 +329,25 @@ def isolate_with_yolo_and_replace_bg(
 #          WD‑EVA02‑Large v3 tagger + size handling
 # =========================================================
 
-def _infer_wd_img_size(model: AutoModelForImageClassification) -> Tuple[int,int]:
-    cfg = getattr(model.config, "timm_config", None)
-    if isinstance(cfg, dict) and "img_size" in cfg:
-        v = cfg["img_size"]
-        if isinstance(v, int): return v, v
-        if isinstance(v, (list, tuple)) and len(v) >= 2: return int(v[0]), int(v[1])
-    if hasattr(model.config, "model_args") and isinstance(model.config.model_args, dict):
-        v = model.config.model_args.get("img_size", None)
-        if isinstance(v, int): return v, v
-    pcfg = getattr(model.config, "pretrained_cfg", None)
-    if isinstance(pcfg, dict) and "input_size" in pcfg:
-        _, H, W = pcfg["input_size"]; return int(H), int(W)
-    raise RuntimeError("Cannot infer WD tagger expected img_size")
-
 def load_wd_eva02_v3(dev: Optional[str] = None):
     d = dev or device_str()
     dtype = torch.float16 if d == "cuda" else torch.float32
-    proc = AutoImageProcessor.from_pretrained("SmilingWolf/wd-eva02-large-tagger-v3")
-    model = AutoModelForImageClassification.from_pretrained("SmilingWolf/wd-eva02-large-tagger-v3").to(d, dtype=dtype).eval()
-    H, W = _infer_wd_img_size(model)  # EVA02-Large v3 => typically 448x448
-    return model, proc, d, dtype, (H, W)
+    proc = AutoImageProcessor.from_pretrained("p1atdev/wd-swinv2-tagger-v3-hf", trust_remote_code=True)
+    model = AutoModelForImageClassification.from_pretrained("p1atdev/wd-swinv2-tagger-v3-hf").to(d, dtype=dtype).eval()
+    return model, proc, d, dtype
 
-def _clean_tag(t: str) -> str:
-    t = t.strip().lower().replace(" ", "_")
-    while "__" in t: t = t.replace("__", "_")
-    return t
 
 GENERIC_DROP = {
-    "person","people","simple_background"
+    "person","people","simple_background",
     "artist_name","copyright_name",
     "rating:safe","rating:questionable","rating:explicit",
     "photo"
 }
+
+from typing import List, Tuple, Dict
+from PIL import Image
+import torch
+from transformers import AutoImageProcessor, AutoModelForImageClassification
 
 @torch.no_grad()
 def wd_tags_for_images(
@@ -315,61 +356,29 @@ def wd_tags_for_images(
     processor: AutoImageProcessor,
     device: str,
     torch_dtype: torch.dtype,
-    expected_size: Tuple[int,int],   # e.g., (448, 448) for EVA02-Large v3
     general_threshold: float = 0.35,
     character_threshold: float = 0.85,
     max_tags: int = 64
 ) -> Dict[str, List[Tuple[str, float]]]:
-    """
-    NOTE:
-      - Do NOT pass do_resize / do_center_crop here: TimmWrapperImageProcessor.preprocess()
-        doesn’t accept them. Instead, we manually resize the PIL image to the EXACT size
-        expected by the WD model to satisfy timm's PatchEmbed assertions.
-    """
-    H, W = expected_size
-    # ↓↓↓ single responsibility: obtain correct human-readable tags
-    raw_map = getattr(processor, "id2label", None) or getattr(model.config, "id2label", None)
-    if not raw_map:
-        raise RuntimeError("id2label mapping missing in both processor and model config")
-    id2label = {int(k): v for k, v in raw_map.items()}
-
-    out = {}
-
+    out: Dict[str, List[Tuple[str, float]]] = {}
     for p in image_paths:
-        with Image.open(p) as im:
-            im = im.convert("RGB").resize((W, H), Image.BICUBIC)
-
-            # Important: no do_resize/center_crop kwargs here
-            inputs = processor(images=im, return_tensors="pt").to(device)
-
-        logits = model(**inputs).logits.to(torch.float32).squeeze(0)
-        probs = torch.sigmoid(logits)
-
+        img = Image.open(p).convert("RGB")
+        inputs = processor.preprocess(img, return_tensors="pt")
+        inputs = {k: v.to(device) for k, v in inputs.items()}
+        if "pixel_values" in inputs: inputs["pixel_values"] = inputs["pixel_values"].to(torch_dtype)
+        probs = torch.sigmoid(model(**inputs).logits[0].float())
         pairs: List[Tuple[str, float]] = []
-        for idx in range(probs.shape[0]):
-            raw_label = id2label[idx]
-            label = _clean_tag(raw_label)
-            if label.startswith("rating:"):
-                continue
-            thr = character_threshold if label.startswith("character:") else general_threshold
-            sc = float(probs[idx].item())
+        for i, s in enumerate(probs):
+            lab = model.config.id2label[i]
+            if lab.startswith("rating:"): continue
+            thr = character_threshold if lab.startswith("character:") else general_threshold
+            sc = float(s.item())
             if sc >= thr:
-                base = label.split(":", 1)[1] if ":" in label else label
-                base = _clean_tag(base)
-                if base not in GENERIC_DROP:
-                    pairs.append((base, sc))
-
+                tag = lab.split(":",1)[1] if ":" in lab else lab
+                tag = tag.strip().lower().replace(" ", "_")
+                pairs.append((tag, sc))
         pairs.sort(key=lambda x: x[1], reverse=True)
-        seen, filtered = set(), []
-        for tag, sc in pairs:
-            if tag in seen:
-                continue
-            seen.add(tag)
-            filtered.append((tag, sc))
-            if len(filtered) >= max_tags:
-                break
-        out[p] = filtered
-
+        out[p] = pairs[:max_tags]
     return out
 
 # =========================================================
@@ -448,7 +457,7 @@ def save_tags(images: List[str], tags_map: Dict[str, str], trigger: str) -> None
     for p in images:
         base = os.path.splitext(os.path.basename(p))[0]
         txtp = os.path.join(os.path.dirname(p), base + ".txt")
-        tags = str(tags_map.get(p, "")).strip("[] ")
+        tags = str(list(dict(tags_map[p]).keys())).strip("[]").replace('\'', "")
         if trigger and not tags.startswith(trigger):
             tags = f"{trigger}, {tags}" if tags else trigger
         with open(txtp, "w", encoding="utf-8") as f:
@@ -500,23 +509,12 @@ def main():
         return
     print(f"[Select] kept {len(sampled)} images")
 
-    # 2) SAM2 (or SAM1 fallback) background replacement
-    # with_bg = isolate_with_yolo_and_replace_bg(
-    #     image_paths=sampled,
-    #     backgrounds_dir=args.backgrounds_dir,
-    #     out_dir=args.with_bg_dir,
-    #     yolo_weights="yolov8n-seg.pt",     # or yolov8m-seg.pt / custom .pt
-    #     conf=0.25,
-    #     feather_px=args.feather_px,
-    #     prefer_person_class=True,
-    #     replace_original=args.replace_original_bg
-    # )
-    # print(f"[BG] composited {len(with_bg)} images -> {args.with_bg_dir}")
 
     # 3) WD EVA02 v3 base tags (auto image size)
-    wd_model, wd_proc, dev, dtype, expected_size = load_wd_eva02_v3()
+    wd_model, wd_proc, dev, dtype = load_wd_eva02_v3()
+
     base_tags_map = wd_tags_for_images(
-        sampled, wd_model, wd_proc, dev, dtype, expected_size,
+        sampled, wd_model, wd_proc, dev, dtype,
         general_threshold=args.wd_general_thr,
         character_threshold=args.wd_character_thr,
         max_tags=args.max_tags
