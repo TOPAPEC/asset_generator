@@ -1,24 +1,23 @@
 [
-    {
-      "prompt": "M1N2N3Z4_K, 1boy, character standing, studio lighting, (best quality), (masterpiece), illustration",
-      "negative_prompt": "nsfw, nudity, lowres, blurry, deformed, extra limbs, bad hands, text, watermark, logo, photorealism",
-      "seed": 42,
-      "width": 512,
-      "height": 512
-    },
-    {
-      "prompt": "M1N2N3Z4_K, 1boy, action scene, sfw, dramatic lighting, cinematic, sharp details, illustration",
-      "negative_prompt": "nsfw, nudity, lowres, artifacts, jpeg, watermark, photorealistic",
-      "seed": 123,
-      "width": 512,
-      "height": 512
-    },
-    {
-      "prompt": "M1N2N3Z4_K, illustration, portrait of the boy, headshot, precise facial features, sharp eyes, neutral background",
-      "negative_prompt": "nsfw, nudity, blurry eyes, extra fingers, distortions, text",
-      "seed": 2025,
-      "width": 512,
-      "height": 512
-    }
-  ]
-  
+  {
+    "prompt": "M1N2N3Z4_K, full-body boy character, standing pose, soft studio lighting, vibrant 2D illustration, highly detailed lineart, rich colors, artistic composition, masterpiece",
+    "negative_prompt": "nsfw, nudity, photorealism, realistic textures, blurry, deformed, extra limbs, bad hands, text, watermark, logo",
+    "seed": 42,
+    "width": 512,
+    "height": 512
+  },
+  {
+    "prompt": "M1N2N3Z4_K, dynamic action scene of a boy, dramatic cinematic lighting, fluid motion, stylized 2D anime illustration, expressive colors, sharp details, epic atmosphere",
+    "negative_prompt": "nsfw, nudity, photorealism, realistic skin, artifacts, jpeg, watermark, lowres",
+    "seed": 123,
+    "width": 512,
+    "height": 512
+  },
+  {
+    "prompt": "M1N2N3Z4_K, portrait of the boy, close-up headshot, expressive eyes, clean lineart, smooth shading, elegant 2D anime illustration, subtle neutral background",
+    "negative_prompt": "nsfw, nudity, photorealism, blurry eyes, distortions, extra fingers, text, watermark",
+    "seed": 2025,
+    "width": 512,
+    "height": 512
+  }
+]
