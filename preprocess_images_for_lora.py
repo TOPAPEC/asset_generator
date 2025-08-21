@@ -412,7 +412,8 @@ Include only:
 - Notable pose or expression (if very distinctive)
 
 Keep it as concise as possible to fit into limited clip model context window. Use natural language. If nothing distinctive is visible, return empty string.
-
+Return one list of tags separated by commas, be as consice as possible. Like:
+"heavy blue plated samurai armor, katana, blurry background, ready to fight, fists clenched, leaning"
 Variable details:"""
 
         payload = {
@@ -558,4 +559,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.gather(main())
+    asyncio.run(main())
