@@ -23,7 +23,7 @@ SD_SCRIPTS_DIR="$PARENT_DIR/sd-scripts"
 
 # PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python infer_i2v_gguf.py
 # python wanpipeline.py
-python preprocess_images_for_lora.py
+# python preprocess_images_for_lora.py
 
 if [ ! -d "$SD_SCRIPTS_DIR" ]; then
   git clone https://github.com/kohya-ss/sd-scripts.git "$SD_SCRIPTS_DIR"
@@ -40,7 +40,7 @@ pip install "numpy<2"
 
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True,max_split_size_mb:256
 accelerate launch --num_processes=1 train_network.py \
-  --pretrained_model_name_or_path stable-diffusion-v1-5/stable-diffusion-v1-5 \
+  --pretrained_model_name_or_path Lykon/dreamshaper-8 \
   --output_dir ../asset_generator/out_lora \
   --output_name char_lora \
   --save_model_as safetensors \

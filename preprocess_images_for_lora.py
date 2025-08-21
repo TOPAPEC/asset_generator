@@ -112,6 +112,45 @@ def filter_by_pickscore(image_paths: List[str], keep_ratio: float = 0.8, batch_s
     indexed_scores.sort(reverse=True)
     
     return [path for _, _, path in indexed_scores[:num_keep]]
+
+@torch.no_grad()
+def filter_by_siglip_negative_prompt(
+    image_paths: List[str], 
+    negative_prompt: str = "blurry face, distorted face, bad quality image, bad anatomy, deformed, ugly, low resolution, pixelated, artifacts",
+    keep_ratio: float = 0.7,
+    batch_size: int = 16
+) -> List[str]:
+    if len(image_paths) <= 1:
+        return image_paths
+    
+    model, proc, dev = _siglip2_model_device()
+    
+    text_inputs = proc(text=[negative_prompt], return_tensors="pt").to(dev)
+    text_emb = model.get_text_features(**text_inputs)
+    text_emb = torch.nn.functional.normalize(text_emb.float(), dim=-1)
+    
+    image_embs = []
+    for i in range(0, len(image_paths), batch_size):
+        batch_paths = image_paths[i:i+batch_size]
+        batch_images = []
+        for path in batch_paths:
+            with Image.open(path) as img:
+                batch_images.append(img.convert("RGB"))
+        
+        inputs = proc(images=batch_images, return_tensors="pt").to(dev)
+        img_emb = model.get_image_features(**inputs)
+        img_emb = torch.nn.functional.normalize(img_emb.float(), dim=-1)
+        image_embs.append(img_emb.cpu())
+    
+    all_image_embs = torch.cat(image_embs, dim=0)
+    similarities = (all_image_embs @ text_emb.cpu().T).squeeze(1)
+    
+    num_keep = max(1, int(len(image_paths) * keep_ratio))
+    indexed_sims = [(sim.item(), i, path) for i, (sim, path) in enumerate(zip(similarities, image_paths))]
+    indexed_sims.sort()
+    
+    return [path for _, _, path in indexed_sims[:num_keep]]
+
 # =========================================================
 #      Stage 2: SigLIP2 semantic diversity (FPS-k)
 # =========================================================
@@ -168,7 +207,7 @@ def select_frames_two_phase(
     phash_hamming_thresh: int = 10,
     target_k: int = 20,
     siglip_batch: int = 16,
-    pickscore_ratio: float = 0.5,
+    pickscore_ratio: float = 0.8,
 ) -> List[str]:
     os.makedirs(dst_dir, exist_ok=True)
     # stride pre-sampling
@@ -188,7 +227,10 @@ def select_frames_two_phase(
     
     # PickScore filtering (top 80%)
     filtered_paths = filter_by_pickscore(candidate_paths, keep_ratio=pickscore_ratio)
-    filtered_candidates = [(idx, sp) for idx, sp in candidates if sp in set(filtered_paths)]
+    # SigLIP negative prompt filtering (keep best 30%)
+    quality_filtered_paths = filter_by_siglip_negative_prompt(filtered_paths, keep_ratio=0.5)
+    filtered_candidates = [(idx, sp) for idx, sp in candidates if sp in set(quality_filtered_paths)]
+
 
     # Stage 1: pHash near-dup prune while copying
     stage1_paths, stage1_hashes = [], []
@@ -394,7 +436,7 @@ from io import BytesIO
 async def refine_tags_with_openrouter(
     base_tags_map: Dict[str, List[Tuple[str, float]]],
     api_key: str,
-    model: str = "anthropic/claude-3.5-sonnet"
+    model: str = "baidu/ernie-4.5-vl-28b-a3b"
 ) -> Dict[str, str]:
     
     semaphore = asyncio.Semaphore(8)
@@ -499,7 +541,7 @@ def main():
     ap.add_argument("--backgrounds_dir", type=str, default="backgrounds")
     ap.add_argument("--keep_every", type=int, default=1)
     ap.add_argument("--phash_hamming", type=int, default=10)
-    ap.add_argument("--target_k", type=int, default=20)
+    ap.add_argument("--target_k", type=int, default=30)
     ap.add_argument("--siglip_batch", type=int, default=16)
     ap.add_argument("--feather_px", type=int, default=2)
     ap.add_argument("--replace_original_bg", action="store_true")
