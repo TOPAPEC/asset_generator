@@ -7,6 +7,9 @@ from typing import List, Dict, Tuple, Optional
 from PIL import Image, ImageFilter
 import torch
 import argparse
+import asyncio
+import aiohttp
+import base64
 
 from transformers import (
     AutoImageProcessor,
@@ -326,7 +329,7 @@ def isolate_with_yolo_and_replace_bg(
 
 
 # =========================================================
-#          WD‑EVA02‑Large v3 tagger + size handling
+#          WD tagger + size handling
 # =========================================================
 
 def load_wd_eva02_v3(dev: Optional[str] = None):
@@ -381,73 +384,94 @@ def wd_tags_for_images(
         out[p] = pairs[:max_tags]
     return out
 
-# =========================================================
-#          GLM‑4.5v VLM tag refinement (multimodal)
-# =========================================================
+import asyncio
+import aiohttp
+import json
+from typing import Dict, List, Tuple
+import base64
+from io import BytesIO
 
-REFINEMENT_SYSTEM_PROMPT = (
-    "You are a tag refiner for dataset labeling. You will receive (a) an image and (b) "
-    "a comma-separated list of preliminary tags. Tasks: "
-    "1) Remove generic, non-descriptive tags (e.g., solo, 1girl, people, simple_background, artist_name, rating:*). "
-    "2) Keep concise, image-specific tags visible in the image (objects, clothing, colors, textures, actions, scene details, lighting). "
-    "3) Enrich with specific visible details (fine-grained clothing names, materials, colors, scene elements, weather/lighting, camera angle if evident). "
-    "Prefer lowercase with underscores; no medium words like painting/drawing/cartoon; output ONLY a comma-separated list.\n"
-    "Enrichment examples:\n"
-    "Base: woman, outdoors, jacket, car, street, night -> "
-    "woman, red_leather_biker_jacket, rainy_street, night_city_lights, reflections_on_asphalt, parked_taxi, short_black_hair, bokeh\n"
-    "Base: man, suit, office, laptop, window -> "
-    "man, navy_suit, slim_black_tie, open_laptop, code_editor_screen, glass_office, skyline_reflection, side_lighting\n"
-    "Base: cat, sitting, window, room -> "
-    "tabby_cat, windowsill, warm_sunlight, dust_particles_in_light, lace_curtains, wooden_frame"
-)
+async def refine_tags_with_openrouter(
+    base_tags_map: Dict[str, List[Tuple[str, float]]],
+    api_key: str,
+    model: str = "anthropic/claude-3.5-sonnet"
+) -> Dict[str, str]:
+    
+    semaphore = asyncio.Semaphore(8)
+    
+    async def refine_single_image(session: aiohttp.ClientSession, image_path: str, tags: List[Tuple[str, float]]) -> Tuple[str, str]:
+        async with semaphore:
+            try:
+                with open(image_path, "rb") as f:
+                    img_data = f.read()
+                
+                img_b64 = base64.b64encode(img_data).decode()
+                current_tags = ", ".join([tag for tag, _ in tags[:20]])
+                
+                prompt = f"""Analyze this image and refine these tags for Stable Diffusion 1.5:
+Current tags: {current_tags}
 
-def load_glm_vlm(dev: Optional[str] = None):
-    d = dev or device_str()
-    dtype = torch.float16 if d == "cuda" else torch.float32
-    model = AutoModelForCausalLM.from_pretrained(
-        "z-ai/glm-4.5v",
-        trust_remote_code=True,
-        torch_dtype=dtype
-    ).to(d)
-    proc = AutoProcessor.from_pretrained("z-ai/glm-4.5v", trust_remote_code=True)
-    return model, proc, d, dtype
+Instructions:
+- Convert danbooru tags to natural language (e.g., "1girl" → "woman", "long_hair" → "long hair")
+- Keep it concise (under 77 tokens for CLIP)
+- Focus on visual elements: pose, clothing, hair, expression, style
+- Remove meta tags, ratings, artist names
+- Use SD 1.5 compatible descriptors
+- Prioritize most important visual features
 
-@torch.no_grad()
-def refine_tags_with_glm(
-    image_path: str,
-    base_tags: List[Tuple[str, float]],
-    model: AutoModelForCausalLM,
-    processor: AutoProcessor,
-    device: str,
-    torch_dtype: torch.dtype,
-    system_prompt: str = REFINEMENT_SYSTEM_PROMPT,
-    max_new_tokens: int = 160
-) -> str:
-    base_list = [t for (t, _) in sorted(base_tags, key=lambda x: x[1], reverse=True)]
-    base_csv = ", ".join(base_list)
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user",   "content": f"Base tags: {base_csv}\nRefine these tags based on the attached image."}
-    ]
-    with Image.open(image_path) as im:
-        im = im.convert("RGB")
-        inputs = processor(
-            images=[im],
-            text=processor.apply_chat_template(messages, add_generation_prompt=True),
-            return_tensors="pt"
-        ).to(device)
-    generated_ids = model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False)
-    out_text = processor.batch_decode(generated_ids, skip_special_tokens=True)[0].strip()
-    out_text = out_text.replace("\n", " ").replace("，", ",")
-    if ":" in out_text and out_text.lower().startswith("refined"):
-        out_text = out_text.split(":", 1)[1].strip()
-    pieces = [_clean_tag(x) for x in out_text.split(",") if x.strip()]
-    final, seen = [], set()
-    for t in pieces:
-        if not t or t in GENERIC_DROP: continue
-        if t not in seen:
-            seen.add(t); final.append(t)
-    return ", ".join(final)
+Return only the refined tag string, comma-separated:"""
+
+                payload = {
+                    "model": model,
+                    "messages": [
+                        {
+                            "role": "user", 
+                            "content": [
+                                {"type": "text", "text": prompt},
+                                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}}
+                            ]
+                        }
+                    ],
+                    "max_tokens": 150,
+                    "temperature": 0.3
+                }
+                
+                headers = {
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json"
+                }
+                
+                async with session.post("https://openrouter.ai/api/v1/chat/completions", 
+                                       json=payload, headers=headers) as resp:
+                    if resp.status == 200:
+                        result = await resp.json()
+                        refined = result["choices"][0]["message"]["content"].strip()
+                        return image_path, refined
+                    else:
+                        print(f"API error for {image_path}: {resp.status}")
+                        fallback = ", ".join([tag.replace("_", " ") for tag, _ in tags[:10]])
+                        return image_path, fallback
+                        
+            except Exception as e:
+                print(f"Error processing {image_path}: {e}")
+                fallback = ", ".join([tag.replace("_", " ") for tag, _ in tags[:10]])
+                return image_path, fallback
+    
+    async with aiohttp.ClientSession() as session:
+        tasks = [refine_single_image(session, path, tags) for path, tags in base_tags_map.items()]
+        results = await asyncio.gather(*tasks)
+    
+    return dict(results)
+
+def save_refined_tags(images: List[str], refined_tags_map: Dict[str, str], trigger: str) -> None:
+    for p in images:
+        base = os.path.splitext(os.path.basename(p))[0]
+        txtp = os.path.join(os.path.dirname(p), base + ".txt")
+        tags = refined_tags_map.get(p, "")
+        if trigger and not tags.startswith(trigger):
+            tags = f"{trigger}, {tags}" if tags else trigger
+        with open(txtp, "w", encoding="utf-8") as f:
+            f.write(tags)
 
 # =========================================================
 #                         IO
@@ -519,11 +543,19 @@ def main():
         character_threshold=args.wd_character_thr,
         max_tags=args.max_tags
     )
-    print("[WD] base tags generated")
 
-    # 5) Save sidecar .txt files with trigger prefix
-    save_tags(sampled, base_tags_map, args.trigger)
-    print("[Save] tags saved")
+
+    # 4) Refine tags with OpenRouter (replace the save_tags call)
+    openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
+    if openrouter_api_key:
+        print("[OpenRouter] Refining tags...")
+        refined_tags_map = asyncio.run(refine_tags_with_openrouter(base_tags_map, openrouter_api_key))
+        save_refined_tags(sampled, refined_tags_map, args.trigger)
+        print("[Save] refined tags saved")
+    else:
+        save_tags(sampled, base_tags_map, args.trigger)
+    print("[Save] base tags saved (no OpenRouter key)")
+
 
 if __name__ == "__main__":
     main()

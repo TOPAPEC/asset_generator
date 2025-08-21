@@ -128,12 +128,13 @@ pipe.load_lora_weights(
 pipe.set_adapters(["lightning", "lightning_2"], adapter_weights=[3., 1.5])
 
 fimg, limg = get_first_and_last_frame("raw_frames/")
+out_dir = "raw_frames"
 
 print("Starting generation")
 frames = pipe(
     image=fimg,
     last_image=limg,
-    prompt="A character running forward and making jump in the middle of video. Camera is moving and is able to capture full side view, full front view and full back view",
+    prompt="The character running forward and making jump in the middle of video. Camera is moving and is able to capture full side view, full front view and full back view",
     negative_prompt="",
     num_inference_steps=6,
     guidance_scale=1.0,
@@ -146,8 +147,7 @@ os.makedirs("./videos/", exist_ok=True)
 
 export_to_video(frames, "videos/output1.mp4", fps=16)
 
-out_dir = "raw_frames"
-last_im_number = get_last_frame_number(out_dir)
+last_im_number = 81 * 1
 
 for i, im in enumerate(frames):
     to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + 1 + i:03d}.png"))
@@ -156,7 +156,7 @@ print("Starting generation")
 frames = pipe(
     image=fimg,
     last_image=limg,
-    prompt="A character sits down and begin crouching forward slowly and silently. Camera is moving with character and captures him fullbody all the time",
+    prompt="The character sits down and begin crouching forward slowly and silently. Camera is moving with character and captures him fullbody all the time",
     negative_prompt="",
     num_inference_steps=6,
     guidance_scale=1.0,
@@ -165,7 +165,7 @@ frames = pipe(
     width=768,
 ).frames[0]
 
-last_im_number = get_last_frame_number(out_dir)
+last_im_number = 81 * 2
 
 for i, im in enumerate(frames):
     to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + 1 + i:03d}.png"))
@@ -186,7 +186,7 @@ frames = pipe(
     width=768,
 ).frames[0]
 
-last_im_number = get_last_frame_number(out_dir)
+last_im_number = 81 * 3
 
 for i, im in enumerate(frames):
     to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + 1 + i:03d}.png"))
@@ -196,7 +196,7 @@ export_to_video(frames, "videos/output3.mp4", fps=16)
 print("Starting generation")
 frames = pipe(
     image=fimg,
-    prompt="Character stands still. The camera zooms in on the persona's face, first capturing it in profile, then in full-face so that the face, neck and chest are visibleCamera is moving towards character face ",
+    prompt="Character is standing in front of cyclorama. The camera slowly and smoothly zooms in on the persona's face (no abrupt zoom), then in full-face so that the face, neck and chest are visible",
     negative_prompt="",
     num_inference_steps=6,
     guidance_scale=1.0,
@@ -205,9 +205,28 @@ frames = pipe(
     width=768,
 ).frames[0]
 
-last_im_number = get_last_frame_number(out_dir)
+last_im_number = 81 * 4
 
 for i, im in enumerate(frames):
     to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + 1 + i:03d}.png"))
 
 export_to_video(frames, "videos/output4.mp4", fps=16)
+
+print("Starting generation")
+frames = pipe(
+    image=fimg,
+    prompt="Character stands in nature setting. The background is initially flashed by camera light, then it become clear and vibrant forest becomes visible. The camera slowly and smoothly zooms in on the persona's face, neck and chest are visible",
+    negative_prompt="",
+    num_inference_steps=6,
+    guidance_scale=1.0,
+    num_frames=81,
+    height=768,
+    width=768,
+).frames[0]
+
+last_im_number = 81 * 5
+
+for i, im in enumerate(frames):
+    to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + 1 + i:03d}.png"))
+
+export_to_video(frames, "videos/output5.mp4", fps=16)
