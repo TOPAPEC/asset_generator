@@ -267,7 +267,6 @@ from typing import List, Tuple, Optional
 from PIL import Image, ImageFilter
 import torch
 
-from ultralytics import YOLO  # pip install ultralytics
 
 def _gaussian_feather(mask: Image.Image, radius: int = 2) -> Image.Image:
     return mask if radius <= 0 else mask.filter(ImageFilter.GaussianBlur(radius))
