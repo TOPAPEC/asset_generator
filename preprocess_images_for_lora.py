@@ -228,8 +228,7 @@ def select_frames_two_phase(
     # PickScore filtering (top 80%)
     filtered_paths = filter_by_pickscore(candidate_paths, keep_ratio=pickscore_ratio)
     # SigLIP negative prompt filtering (keep best 30%)
-    quality_filtered_paths = filter_by_siglip_negative_prompt(filtered_paths, keep_ratio=0.5)
-    filtered_candidates = [(idx, sp) for idx, sp in candidates if sp in set(quality_filtered_paths)]
+    filtered_candidates = [(idx, sp) for idx, sp in candidates if sp in set(filtered_paths)]
 
 
     # Stage 1: pHash near-dup prune while copying

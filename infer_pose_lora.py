@@ -5,12 +5,12 @@ from diffusers import StableDiffusionControlNetPipeline, ControlNetModel, UniPCM
 from transformers import CLIPVisionModelWithProjection
 from diffusers.utils import load_image
 
-BASE_MODEL = "Lykon/dreamshaper-8"
+BASE_MODEL = "stablediffusionapi/anything-v5"
 CONTROLNET_ID = "lllyasviel/control_v11p_sd15_openpose"
 LORA_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), ".", "out_lora", "char_lora.safetensors"))
 POSES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "poses"))
 OUT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "outputs", "pose_lora"))
-PROMPT = "Ohwjfdk, man, short black hair, blue eyes, muscular build, samurai armor, absurdres, masterpiece, illustration anime art, top quality, (masterpiece)"
+PROMPT = "Ohwjfdk, man, short black hair, blue eyes, muscular build, samurai armor, running, absurdres, masterpiece, illustration anime art, correct anatomy, simple background"
 NEGATIVE = "worst quality, low quality, bad anatomy, bad hands, bad body, missing fingers, extra digit, three legs, three arms, fewer digits, blurry, text, watermark, lowres, bad anatomy, bad hands, extra fingers, missing fingers, deformed, detailed background, multiple characters"
 GUIDANCE = 4.0
 STEPS = 30
@@ -57,7 +57,7 @@ pipe.load_ip_adapter(
     
 # )
 
-pipe.set_ip_adapter_scale(0.8)
+pipe.set_ip_adapter_scale(0.5)
 
 
 pipe.safety_checker = None

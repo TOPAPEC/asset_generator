@@ -134,123 +134,121 @@ out_dir = "raw_frames"
 
 os.makedirs(out_dir, exist_ok=True)
 
-
-print("Starting generation")
-frames = pipe(
-    image=fimg,
-    # last_image=limg,
-    prompt="Character is standing in front of ocean shoreline. The character begin to run forward from the very begining of the video. The background is initially flashed by camera light, then it become clear shoreline and ocean become  visible. Camera is smoothly moving after him and is able to capture him fully all the time. Each frame is an animation masterpiece",
+def generate_sequence(
+    pipe,
+    image,
+    prompt,
     negative_prompt="",
-    num_inference_steps=6,
+    num_inference_steps=4,
     guidance_scale=1.0,
     num_frames=81,
     height=768,
     width=768,
-).frames[0]
+    out_dir="frames",
+    video_path="videos/output.mp4",
+    frame_offset=0,
+    fps=16
+):
+    print(f"Starting generation: {prompt[:50]}...")  # short preview of prompt
 
-os.makedirs("./videos/", exist_ok=True)
+    frames = pipe(
+        image=image,
+        prompt=prompt,
+        negative_prompt=negative_prompt,
+        num_inference_steps=num_inference_steps,
+        guidance_scale=guidance_scale,
+        num_frames=num_frames,
+        height=height,
+        width=width,
+    ).frames[0]
 
-export_to_video(frames, "videos/output1.mp4", fps=16)
+    for i, im in enumerate(frames):
+        to_pil(im).save(os.path.join(out_dir, f"frame_{frame_offset + i + 1:03d}.png"))
 
-last_im_number = 81 * 1
+    export_to_video(frames, video_path, fps=fps)
+    print(f"Video saved: {video_path}")
 
-for i, im in enumerate(frames):
-    to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + 1 + i:03d}.png"))
-
-print("Starting generation")
-frames = pipe(
+generate_sequence(
+    pipe=pipe,
     image=fimg,
-    # last_image=limg,
-    prompt="Character is standing in front of cyclorama on the tallest building in megapolis. The character begins to run to the left. Camera is slowly moving with the character capturing its sideview",
-    negative_prompt="",
-    num_inference_steps=6,
-    guidance_scale=1.0,
-    num_frames=81,
-    height=768,
-    width=768,
-).frames[0]
+    prompt="Character is preparing to run in front of ocean shoreline. The character begin to run forward from the very begining of the video. The background at the starting moment flashed by camera light, but it becomes clear very fast. Camera is smoothly moving after him and is able to capture him fully all the time. Each frame is an animation masterpiece",
+    frame_offset=81*1,
+    out_dir=out_dir,
+    video_path="videos/output1.mp4"
+)
 
-last_im_number = 81 * 2
-
-for i, im in enumerate(frames):
-    to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + 1 + i:03d}.png"))
-
-export_to_video(frames, "videos/output2.mp4", fps=16)
-
-
-print("Starting generation")
-frames = pipe(
+generate_sequence(
+    pipe=pipe,
     image=fimg,
-    # last_image=limg,
+    prompt="The character is standing in front brick wall in a small town. The character begins to run to the left. The background at the starting moment flashed by camera light, but it becomes clear very fast and brick wall with the town become visible. Camera is slowly moving with the character capturing its sideview",
+    frame_offset=81*2,
+    out_dir=out_dir,
+    video_path="videos/output2.mp4"
+)
+
+generate_sequence(
+    pipe=pipe,
+    image=fimg,
     prompt="Character is standing in front of cyclorama at a boxing club. The character moves into a boxing stance and starts punching with his hands. Camera is focused on the character and slowly and smoothly moves towards and around it to capture his closes side view",
-    negative_prompt="",
-    num_inference_steps=6,
-    guidance_scale=1.0,
-    num_frames=81,
-    height=768,
-    width=768,
-).frames[0]
+    frame_offset=81*3,
+    out_dir=out_dir,
+    video_path="videos/output3.mp4"
+)
 
-last_im_number = 81 * 3
 
-for i, im in enumerate(frames):
-    to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + 1 + i:03d}.png"))
-
-export_to_video(frames, "videos/output3.mp4", fps=16)
-
-print("Starting generation")
-frames = pipe(
+generate_sequence(
+    pipe=pipe,
     image=fimg,
-    prompt="Character is standing in front of cyclorama. The camera slowly and smoothly zooms in on the persona's face (no abrupt zoom), then in full-face so that the face, neck and chest are visible",
-    negative_prompt="",
-    num_inference_steps=6,
-    guidance_scale=1.0,
-    num_frames=81,
-    height=768,
-    width=768,
-).frames[0]
+    prompt="The character is standing in front brick wall in a small town. The camera slowly and smoothly zooms in on the persona's face (no abrupt zoom), then in full-face so that the face, neck and chest are visible",
+    frame_offset=81*4,
+    out_dir=out_dir,
+    video_path="videos/output4.mp4"
+)
 
-last_im_number = 81 * 4
 
-for i, im in enumerate(frames):
-    to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + 1 + i:03d}.png"))
-
-export_to_video(frames, "videos/output4.mp4", fps=16)
-
-print("Starting generation")
-frames = pipe(
+generate_sequence(
+    pipe=pipe,
     image=fimg,
     prompt="Character stands in nature setting. It is talking and laughing and then becomes angry. The background is initially flashed by camera light, then it become clear and vibrant forest becomes visible. The camera slowly and smoothly zooms in on the persona's face from a side, neck and shoulder are visible and the camera stops on the character side view",
-    negative_prompt="",
-    num_inference_steps=6,
-    guidance_scale=1.0,
-    num_frames=81,
-    height=768,
-    width=768,
-).frames[0]
+    frame_offset=81*5,
+    out_dir=out_dir,
+    video_path="videos/output5.mp4"
+)
 
-last_im_number = 81 * 5
 
-for i, im in enumerate(frames):
-    to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + 1 + i:03d}.png"))
-
-export_to_video(frames, "videos/output5.mp4", fps=16)
-
-print("Starting generation")
-frames = pipe(
+generate_sequence(
+    pipe=pipe,
     image=fimg,
     prompt="Character stands in town setting. Character begins to turn around from the start of the video. The background is initially flashed by camera light, then it become clear and vibrant and cozy town becomes visible. The camera slowly and smoothly zooms in on the persona's face (capturing back of his head with neck and shoulders with upper back at the end)",
-    negative_prompt="",
-    num_inference_steps=6,
-    guidance_scale=1.0,
-    num_frames=81,
-    height=768,
-    width=768,
-).frames[0]
+    frame_offset=81*6,
+    out_dir=out_dir,
+    video_path="videos/output6.mp4"
+)
 
-last_im_number = 81 * 6
 
-for i, im in enumerate(frames):
-    to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + 1 + i:03d}.png"))
+generate_sequence(
+    pipe=pipe,
+    image=fimg,
+    prompt="Character is training in town setting. The character drops any items from his hands, jumps into fighting stance and begins to land professional roundhouse kicks. The background is initially flashed by camera light, then it become clear and vibrant and cozy town becomes visible. The camera slowly and smoothly goes around the character capturing first frontview of it fighting then sideview and backview",
+    frame_offset=81*7,
+    out_dir=out_dir,
+    video_path="videos/output7.mp4"
+)
 
-export_to_video(frames, "videos/output6.mp4", fps=16)
+generate_sequence(
+    pipe=pipe,
+    image=fimg,
+    prompt="Character stands in town setting. Character takes a chair and sits on it. The background is initially flashed by camera light, then it become clear and vibrant and cozy town becomes visible. The camera slowly and smoothly goes around the character capturing first frontview of it sitting and then sideview and then back view always capturing the character full height",
+    frame_offset=81*8,
+    out_dir=out_dir,
+    video_path="videos/output8.mp4"
+)
+
+generate_sequence(
+    pipe=pipe,
+    image=fimg,
+    prompt="Dynamic 3d anime style animation. Character is training in nature near a very high (around 50 meters tall) a waterfall cliff. The character drops any items from his hands and jumps off the cliff and free fall then lends right into the water near the waterfall. The background is initially flashed by camera light, then it become clear and vibrant and nature setting with waterfall appear clear and beautiful. The camera falls down with the character and rapidly circles around the character capturing first frontview then sideview and backview of the character always keeping the character occupying most of the frame",
+    frame_offset=81*9,
+    out_dir=out_dir,
+    video_path="videos/output9.mp4"
+)
