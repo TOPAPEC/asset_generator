@@ -127,109 +127,114 @@ pipe.load_lora_weights(
 )
 pipe.set_adapters(["lightning", "lightning_2"], adapter_weights=[3., 1.5])
 
-fimg, limg = get_first_and_last_frame("raw_frames/")
+# fimg, limg = get_first_and_last_frame("raw_frames/")
+
+fimg = load_image(Image.open("image.png")).convert("RGB")
 out_dir = "raw_frames"
 
-# print("Starting generation")
-# frames = pipe(
-#     image=fimg,
-#     last_image=limg,
-#     prompt="Character is standing in front of ocean shoreline. The character runs forward and jumps in the middle of the video. Camera is smoothly moving after him and is able to capture him fully all the time. Each frame is an animation masterpiece",
-#     negative_prompt="",
-#     num_inference_steps=6,
-#     guidance_scale=1.0,
-#     num_frames=81,
-#     height=768,
-#     width=768,
-# ).frames[0]
-
-# os.makedirs("./videos/", exist_ok=True)
-
-# export_to_video(frames, "videos/output1.mp4", fps=16)
-
-# last_im_number = 81 * 1
-
-# for i, im in enumerate(frames):
-#     to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + 1 + i:03d}.png"))
-
-# print("Starting generation")
-# frames = pipe(
-#     image=fimg,
-#     last_image=limg,
-#     prompt="Character is standing in front of cyclorama on the tallest building in megapolis. The character sits down and begin crouching forward slowly. Camera is slowly moving towards the character and stops to move when he fills the frame fully",
-#     negative_prompt="",
-#     num_inference_steps=6,
-#     guidance_scale=1.0,
-#     num_frames=81,
-#     height=768,
-#     width=768,
-# ).frames[0]
-
-# last_im_number = 81 * 2
-
-# for i, im in enumerate(frames):
-#     to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + 1 + i:03d}.png"))
-
-# export_to_video(frames, "videos/output2.mp4", fps=16)
+os.makedirs(out_dir, exist_ok=True)
 
 
-# print("Starting generation")
-# frames = pipe(
-#     image=fimg,
-#     # last_image=limg,
-#     prompt="Character is standing in front of cyclorama at a boxing club. The character moves into a boxing stance and starts punching with his hands. Camera is focused on the character and slowly and smoothly moves towards and around it to capture his closes side view",
-#     negative_prompt="",
-#     num_inference_steps=6,
-#     guidance_scale=1.0,
-#     num_frames=81,
-#     height=768,
-#     width=768,
-# ).frames[0]
+print("Starting generation")
+frames = pipe(
+    image=fimg,
+    # last_image=limg,
+    prompt="Character is standing in front of ocean shoreline. The character begin to run forward from the very begining of the video. The background is initially flashed by camera light, then it become clear shoreline and ocean become  visible. Camera is smoothly moving after him and is able to capture him fully all the time. Each frame is an animation masterpiece",
+    negative_prompt="",
+    num_inference_steps=6,
+    guidance_scale=1.0,
+    num_frames=81,
+    height=768,
+    width=768,
+).frames[0]
 
-# last_im_number = 81 * 3
+os.makedirs("./videos/", exist_ok=True)
 
-# for i, im in enumerate(frames):
-#     to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + 1 + i:03d}.png"))
+export_to_video(frames, "videos/output1.mp4", fps=16)
 
-# export_to_video(frames, "videos/output3.mp4", fps=16)
+last_im_number = 81 * 1
 
-# print("Starting generation")
-# frames = pipe(
-#     image=fimg,
-#     prompt="Character is standing in front of cyclorama. The camera slowly and smoothly zooms in on the persona's face (no abrupt zoom), then in full-face so that the face, neck and chest are visible",
-#     negative_prompt="",
-#     num_inference_steps=6,
-#     guidance_scale=1.0,
-#     num_frames=81,
-#     height=768,
-#     width=768,
-# ).frames[0]
+for i, im in enumerate(frames):
+    to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + 1 + i:03d}.png"))
 
-# last_im_number = 81 * 4
+print("Starting generation")
+frames = pipe(
+    image=fimg,
+    # last_image=limg,
+    prompt="Character is standing in front of cyclorama on the tallest building in megapolis. The character begins to run to the left. Camera is slowly moving with the character capturing its sideview",
+    negative_prompt="",
+    num_inference_steps=6,
+    guidance_scale=1.0,
+    num_frames=81,
+    height=768,
+    width=768,
+).frames[0]
 
-# for i, im in enumerate(frames):
-#     to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + 1 + i:03d}.png"))
+last_im_number = 81 * 2
 
-# export_to_video(frames, "videos/output4.mp4", fps=16)
+for i, im in enumerate(frames):
+    to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + 1 + i:03d}.png"))
 
-# print("Starting generation")
-# frames = pipe(
-#     image=fimg,
-#     prompt="Character stands in nature setting. It is talking and laughing and then becomes angry. The background is initially flashed by camera light, then it become clear and vibrant forest becomes visible. The camera slowly and smoothly zooms in on the persona's face from a side, neck and shoulder are visible and the camera stops on the character side view",
-#     negative_prompt="",
-#     num_inference_steps=6,
-#     guidance_scale=1.0,
-#     num_frames=81,
-#     height=768,
-#     width=768,
-# ).frames[0]
+export_to_video(frames, "videos/output2.mp4", fps=16)
 
-# last_im_number = 81 * 5
 
-# for i, im in enumerate(frames):
-#     to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + 1 + i:03d}.png"))
+print("Starting generation")
+frames = pipe(
+    image=fimg,
+    # last_image=limg,
+    prompt="Character is standing in front of cyclorama at a boxing club. The character moves into a boxing stance and starts punching with his hands. Camera is focused on the character and slowly and smoothly moves towards and around it to capture his closes side view",
+    negative_prompt="",
+    num_inference_steps=6,
+    guidance_scale=1.0,
+    num_frames=81,
+    height=768,
+    width=768,
+).frames[0]
 
-# export_to_video(frames, "videos/output5.mp4", fps=16)
+last_im_number = 81 * 3
+
+for i, im in enumerate(frames):
+    to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + 1 + i:03d}.png"))
+
+export_to_video(frames, "videos/output3.mp4", fps=16)
+
+print("Starting generation")
+frames = pipe(
+    image=fimg,
+    prompt="Character is standing in front of cyclorama. The camera slowly and smoothly zooms in on the persona's face (no abrupt zoom), then in full-face so that the face, neck and chest are visible",
+    negative_prompt="",
+    num_inference_steps=6,
+    guidance_scale=1.0,
+    num_frames=81,
+    height=768,
+    width=768,
+).frames[0]
+
+last_im_number = 81 * 4
+
+for i, im in enumerate(frames):
+    to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + 1 + i:03d}.png"))
+
+export_to_video(frames, "videos/output4.mp4", fps=16)
+
+print("Starting generation")
+frames = pipe(
+    image=fimg,
+    prompt="Character stands in nature setting. It is talking and laughing and then becomes angry. The background is initially flashed by camera light, then it become clear and vibrant forest becomes visible. The camera slowly and smoothly zooms in on the persona's face from a side, neck and shoulder are visible and the camera stops on the character side view",
+    negative_prompt="",
+    num_inference_steps=6,
+    guidance_scale=1.0,
+    num_frames=81,
+    height=768,
+    width=768,
+).frames[0]
+
+last_im_number = 81 * 5
+
+for i, im in enumerate(frames):
+    to_pil(im).save(os.path.join(out_dir, f"frame_{last_im_number + 1 + i:03d}.png"))
+
+export_to_video(frames, "videos/output5.mp4", fps=16)
 
 print("Starting generation")
 frames = pipe(
