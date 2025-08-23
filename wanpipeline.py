@@ -247,7 +247,7 @@ generate_sequence(
 generate_sequence(
     pipe=pipe,
     image=fimg,
-    prompt="Dynamic 3d anime style animation. Character is training in nature near a very high (around 50 meters tall) a waterfall cliff. The character drops any items from his hands and jumps off the cliff and free fall then lends right into the water near the waterfall. The background is initially flashed by camera light, then it become clear and vibrant and nature setting with waterfall appear clear and beautiful. The camera falls down with the character and rapidly circles around the character capturing first frontview then sideview and backview of the character always keeping the character occupying most of the frame",
+    prompt="Dynamic 3d anime style animation. Character is training in nature near a very high (around 50 meters tall) a waterfall cliff. The character drops any items from his hands and jumps off the cliff and free fall then lends right into the water near the waterfall. The background is initially flashed by camera light, then it become clear and vibrant and nature setting with waterfall appear clear and beautiful. The camera falls down with the character and rapidly circles around the character capturing first frontview then sideview and backview of the character always keeping the character inside of the frame (even when the character dives underwater)",
     frame_offset=81*9,
     out_dir=out_dir,
     video_path="videos/output9.mp4"
