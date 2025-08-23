@@ -508,7 +508,7 @@ async def main():
     ap.add_argument("--backgrounds_dir", type=str, default="backgrounds")
     ap.add_argument("--keep_every", type=int, default=1)
     ap.add_argument("--phash_hamming", type=int, default=10)
-    ap.add_argument("--target_k", type=int, default=30)
+    ap.add_argument("--target_k", type=int, default=50)
     ap.add_argument("--siglip_batch", type=int, default=16)
     ap.add_argument("--feather_px", type=int, default=2)
     ap.add_argument("--replace_original_bg", action="store_true")
