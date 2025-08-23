@@ -451,6 +451,9 @@ async def generate_prompts_two_stage(
     fullbody_paths = find_closest_images_to_text(image_paths, "fullbody high quality shot", top_k=3)
     
     character_traits = await generate_character_traits(closeup_paths, fullbody_paths, api_key, model)
+
+    with open("character_details.txt", "w") as file: 
+        file.write(character_traits)
     
     semaphore = asyncio.Semaphore(8)
     
@@ -507,7 +510,7 @@ async def main():
     ap.add_argument("--backgrounds_dir", type=str, default="backgrounds")
     ap.add_argument("--keep_every", type=int, default=1)
     ap.add_argument("--phash_hamming", type=int, default=10)
-    ap.add_argument("--target_k", type=int, default=50)
+    ap.add_argument("--target_k", type=int, default=60)
     ap.add_argument("--siglip_batch", type=int, default=16)
     ap.add_argument("--feather_px", type=int, default=2)
     ap.add_argument("--replace_original_bg", action="store_true")

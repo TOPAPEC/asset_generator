@@ -21,9 +21,8 @@ PROJECT_DIR="$PWD"
 PARENT_DIR="$(dirname "$PROJECT_DIR")"
 SD_SCRIPTS_DIR="$PARENT_DIR/sd-scripts"
 
-# PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python infer_i2v_gguf.py
-python wanpipeline.py
-python preprocess_images_for_lora.py
+# python wanpipeline.py
+# python preprocess_images_for_lora.py
 
 if [ ! -d "$SD_SCRIPTS_DIR" ]; then
   git clone https://github.com/kohya-ss/sd-scripts.git "$SD_SCRIPTS_DIR"
@@ -51,9 +50,9 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True,max_split_size_mb:256
 #   --sample_prompts ../asset_generator/sample_prompts.json \
 #   --sample_sampler euler_a \
 #   --network_module lycoris.kohya \
-#   --network_args "algo=locon" "conv_dim=32" "conv_alpha=16" \
-#   --network_dim 32 \
-#   --network_alpha 16 \
+#   --network_args "algo=locon" "conv_dim=4" "conv_alpha=2" \
+#   --network_dim 16 \
+#   --network_alpha 8 \
 #   --train_data_dir ../asset_generator \
 #   --caption_extension .txt \
 #   --resolution 512 \

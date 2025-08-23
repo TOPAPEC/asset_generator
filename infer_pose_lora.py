@@ -10,9 +10,12 @@ CONTROLNET_ID = "lllyasviel/control_v11p_sd15_openpose"
 LORA_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), ".", "out_lora", "char_lora.safetensors"))
 POSES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "poses"))
 OUT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "outputs", "pose_lora"))
-PROMPT = "Ohwjfdk, man, short black hair, blue eyes, muscular build, samurai armor, running, absurdres, masterpiece, illustration anime art, correct anatomy, simple background"
+CHAR_DETAILS = str(open("character_details.txt", "r"))
+print(f"CHARACTER DETS: {CHAR_DETAILS}")
+# PROMPT = f"Ohwjfdk, {CHAR_DETAILS}, samurai armor, running, absurdres, masterpiece, illustration anime art, correct anatomy, simple background"
+PROMPT = f"Ohwjfdk, girl, short white hair, pink hair tips, green hair tips, blue eyes, pale skin, slim build,  single character, sfw, absurdres, 2d illustration"
 NEGATIVE = "worst quality, low quality, bad anatomy, bad hands, bad body, missing fingers, extra digit, three legs, three arms, fewer digits, blurry, text, watermark, lowres, bad anatomy, bad hands, extra fingers, missing fingers, deformed, detailed background, multiple characters"
-GUIDANCE = 4.0
+GUIDANCE = 7.0
 STEPS = 30
 LORA_SCALE = 1.0
 SEED = 42
@@ -57,7 +60,7 @@ pipe.load_ip_adapter(
     
 # )
 
-pipe.set_ip_adapter_scale(0.5)
+pipe.set_ip_adapter_scale(0.0)
 
 
 pipe.safety_checker = None

@@ -1,20 +1,20 @@
 [
   {
-    "prompt": "Ohwjfdk, man, short black hair, blue eyes, muscular build, blue and black samurai armor, sfw, standing pose, soft studio lighting, 2D illustration, absurdres",
+    "prompt": "Ohwjfdk, girl, short white hair, pink hair tips, green hair tips, blue eyes, pale skin, slim build, blue hooded cloak, black pants, black shoes with red accents, short multi-colored hair, medieval village street, running pose",
     "negative_prompt": "multiple characters, porn, hentai, nsfw, nudity, photorealism, realistic textures, blurry, deformed, extra limbs, bad hands, text, watermark, logo",
     "seed": 42,
     "width": 512,
     "height": 512
   },
   {
-    "prompt": "Ohwjfdk, man, short black hair, blue eyes, muscular build, blue and black samurai armor, sfw, action scene, dramatic cinematic lighting, fluid motion, stylized 2D illustration, expressive colors, sharp details, epic atmosphere",
+    "prompt": "Ohwjfdk, girl, short white hair, pink hair tips, green hair tips, blue eyes, pale skin, slim build, blue hooded cloak, sfw, action scene, dramatic cinematic lighting, fluid motion, stylized 2D illustration, expressive colors, sharp details, epic atmosphere",
     "negative_prompt": "porn, hentai, nsfw, nudity, photorealism, realistic skin, artifacts, jpeg, watermark, lowres",
     "seed": 123,
     "width": 512,
     "height": 512
   },
   {
-    "prompt": "Ohwjfdk, man, short black hair, blue eyes, muscular build, blue and black samurai armor, single character, sfw, absurdres, 2d illustration",
+    "prompt": "Ohwjfdk, girl, short white hair, pink hair tips, green hair tips, blue eyes, pale skin, slim build, closeup portrait shot, single character, sfw, absurdres, 2d illustration",
     "negative_prompt": "multiple characters, porn, hentai, nsfw, nudity, photorealism, blurry eyes, distortions, extra fingers, text, watermark",
     "seed": 2025,
     "width": 512,
