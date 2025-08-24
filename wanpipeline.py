@@ -133,12 +133,15 @@ fimg = load_image(Image.open("image.png")).convert("RGB")
 out_dir = "raw_frames"
 
 os.makedirs(out_dir, exist_ok=True)
+os.makedirs("videos/", exist_ok=True)
+
+NEGATIVE = "bright colors, overexposed, motion blur, static, blurred details, subtitles, watermark, style, artwork, painting, picture, still, worst quality, low quality, jpeg artifacts, ugly, extra fingers, poorly drawn hands, poorly drawn face, deformed, disfigured, malformed limbs, fused fingers, cluttered background, many people in background, walking backwards, distorted face, distorted features, blurry eyes"
 
 def generate_sequence(
     pipe,
     image,
     prompt,
-    negative_prompt="",
+    negative_prompt=NEGATIVE,
     num_inference_steps=6,
     guidance_scale=1.0,
     num_frames=81,
@@ -171,66 +174,61 @@ def generate_sequence(
 generate_sequence(
     pipe=pipe,
     image=fimg,
-    prompt="Character is preparing to run in front of ocean shoreline. The character begin to run forward from the very begining of the video. The background at the starting moment flashed by camera light, but it becomes clear very fast. Camera is smoothly moving after him and is able to capture him fully all the time. Each frame is an animation masterpiece",
-    negative_prompt="motion blur, blurry eyes, distorted face, distorted character features",
+    prompt="Photoreal shoreline at golden hour. Shot: WS→MWS, eye-level, 35–50mm. Camera: steady tracking forward behind her with a subtle push-in ~20%. Motion: she starts running from frame one; hair/cloth react; waves move; horizon steady. Lighting: warm rim-light, light haze. Stability: face and outfit unchanged. Duration ~5 s.",
     frame_offset=81*1,
     out_dir=out_dir,
     video_path="videos/output1.mp4"
 )
 
-# generate_sequence(
-#     pipe=pipe,
-#     image=fimg,
-#     prompt="The character is standing in front brick wall in a small town. The character begins to run to the left. The background at the starting moment flashed by camera light, but it becomes clear very fast and brick wall with the town become visible. Camera is slowly moving with the character capturing its sideview",
-#     frame_offset=81*2,
-#     out_dir=out_dir,
-#     video_path="videos/output2.mp4"
-# )
-
-# generate_sequence(
-#     pipe=pipe,
-#     image=fimg,
-#     prompt="Character is standing in front of cyclorama at a boxing club. The character moves into a boxing stance and starts punching with his hands. Camera is focused on the character and slowly and smoothly moves towards and around it to capture his closes side view",
-#     frame_offset=81*3,
-#     out_dir=out_dir,
-#     video_path="videos/output3.mp4"
-# )
-
-
-# generate_sequence(
-#     pipe=pipe,
-#     image=fimg,
-#     prompt="The character is standing in front brick wall in a small town. The camera slowly and smoothly zooms in on the persona's face (no abrupt zoom), then in full-face so that the face, neck and chest are visible",
-#     frame_offset=81*4,
-#     out_dir=out_dir,
-#     video_path="videos/output4.mp4"
-# )
-
-
-# generate_sequence(
-#     pipe=pipe,
-#     image=fimg,
-#     prompt="Character stands in nature setting. It is talking and laughing and then becomes angry. The background is initially flashed by camera light, then it become clear and vibrant forest becomes visible. The camera slowly and smoothly zooms in on the persona's face from a side, neck and shoulder are visible and the camera stops on the character side view",
-#     frame_offset=81*5,
-#     out_dir=out_dir,
-#     video_path="videos/output5.mp4"
-# )
-
-
-# generate_sequence(
-#     pipe=pipe,
-#     image=fimg,
-#     prompt="Character stands in town setting. Character begins to turn around from the start of the video. The background is initially flashed by camera light, then it become clear and vibrant and cozy town becomes visible. The camera slowly and smoothly zooms in on the persona's face (capturing back of his head with neck and shoulders with upper back at the end)",
-#     frame_offset=81*6,
-#     out_dir=out_dir,
-#     video_path="videos/output6.mp4"
-# )
-
+generate_sequence(
+    pipe=pipe,
+    image=fimg,
+    prompt="Small-town brick wall alley. Shot: MS side profile, eye-level, 50mm. Camera: constant lateral track matching her pace (left→right), no extra moves. Motion: she breaks into a run to screen-left from the start; ponytail swings; mild background parallax. Light: soft overcast. Stability: identity locked. Duration ~5 s.",
+    frame_offset=81*2,
+    out_dir=out_dir,
+    video_path="videos/output2.mp4"
+)
 
 generate_sequence(
     pipe=pipe,
     image=fimg,
-    prompt="Character is training in town setting. The character drops any items from his hands, jumps into fighting stance and begins to land professional roundhouse kicks. The background is initially flashed by camera light, then it become clear and vibrant and cozy town becomes visible. The camera slowly and smoothly goes around the character capturing first frontview of it fighting then sideview and backview. If some background objects are constricting camera movements, camera uses noclip to fly through them.",
+    prompt="Cyclorama boxing gym. Shot: MS→MCU, eye-level, 50mm, shallow DoF. Camera: gentle dolly-in ~25%, no pan/tilt. Motion: she sets stance then throws jab–cross–jab with correct wrist alignment and guard; chalk dust motes drift. Light: soft top + rim. Stability: face/outfit consistent. Duration ~5 s.",
+    frame_offset=81*3,
+    out_dir=out_dir,
+    video_path="videos/output3.mp4"
+)
+
+generate_sequence(
+    pipe=pipe,
+    image=fimg,
+    prompt="Brick wall portrait. Shot: MS→CU centered, eye-level, 85mm tele. Camera: slow dolly-in ~30% to a clean face/neck/upper chest CU; no zoom artifacts. Motion: subtle breathing and natural eye saccades; hair micro-movement. Light: soft overcast with warm skin tone. Stability: facial landmarks stable. Duration ~5 s.",
+    frame_offset=81*4,
+    out_dir=out_dir,
+    video_path="videos/output4.mp4"
+)
+
+generate_sequence(
+    pipe=pipe,
+    image=fimg,
+    prompt="Forest clearing with soft canopy light. Shot: starts MS full-body profile, 50mm. Camera: gentle dolly-in ~25% ending on MCU framing face, neck, shoulders. Motion: she talks and laughs, then shifts to stern expression; subtle head/shoulder movement. Light: cool ambient with warm rim. Stability: outfit/face constant. Duration ~5 s.",
+    frame_offset=81*5,
+    out_dir=out_dir,
+    video_path="videos/output5.mp4"
+)
+
+generate_sequence(
+    pipe=pipe,
+    image=fimg,
+    prompt="Cozy town street. Shot: starts MWS (upper body), 35mm. Camera: subtle push-in ~20% as she performs smooth 180° turn, ending on MCU of head/neck/upper back. Motion: hair sways as she turns from face-on to back view. Light: warm/cool afternoon. Stability: proportions and facial features consistent. Duration ~5 s.",
+    frame_offset=81*6,
+    out_dir=out_dir,
+    video_path="videos/output6.mp4"
+)
+
+generate_sequence(
+    pipe=pipe,
+    image=fimg,
+    prompt="Open town plaza. Shot: WS→MS, 35mm, centered. Camera: steady orbit arc ~120° clockwise at constant radius. Motion: she drops any objects, takes fighting stance, executes clean roundhouse kicks with hip rotation and guard up; ground scuffs appear. Light: crisp daylight. Stability: limbs well-formed; identity locked. Duration ~5 s.",
     frame_offset=81*7,
     out_dir=out_dir,
     video_path="videos/output7.mp4"
@@ -239,7 +237,7 @@ generate_sequence(
 generate_sequence(
     pipe=pipe,
     image=fimg,
-    prompt="Character stands in town setting. Character takes a chair and sits on it. The background is initially flashed by camera light, then it become clear and vibrant and cozy town becomes visible. The camera slowly and smoothly goes around the character capturing first frontview of it sitting and then sideview and then back view always capturing the character full height. If some background objects are constricting camera movements, camera uses noclip to fly through them",
+    prompt="Town scene with chair. Shot: starts WS full height, 35mm. Camera: smooth orbit arc ~100° around her as she sits, combined with gentle push-in so mid-body and face become clearer during orbit. Motion: she takes chair, sits gracefully, adjusts posture; cloth settles. Light: warm street practicals. Stability: face/outfit consistent. Duration ~5 s.",
     frame_offset=81*8,
     out_dir=out_dir,
     video_path="videos/output8.mp4"
@@ -248,7 +246,7 @@ generate_sequence(
 generate_sequence(
     pipe=pipe,
     image=fimg,
-    prompt="Dynamic 3d anime style animation. Character is training in nature near a very high (around 50 meters tall) a waterfall cliff. The character drops any items from his hands and jumps off the cliff and free fall then lends right into the water near the waterfall. The background is initially flashed by camera light, then it become clear and vibrant and nature setting with waterfall appear clear and beautiful. The camera is ALWAYS keeping character in frame following the character even while it falling from the cliff and even when it dives underwater.",
+    prompt="Stylized 3D-anime realism; tall waterfall (~50 m) with mist. Shot: start MWS at cliff edge, 24–35mm wide. Camera: continuous tracking follow downward, matching her speed; maintain framing into water, brief underwater tail. Motion: she drops items, leaps, free-falls, clean entry, short submerged glide with bubble trails. Color: cool cyan–teal highlights, high clarity. Stability: identity consistent air→water. Duration ~5 s.",
     frame_offset=81*9,
     out_dir=out_dir,
     video_path="videos/output9.mp4"

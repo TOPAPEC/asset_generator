@@ -207,7 +207,7 @@ def select_frames_two_phase(
     phash_hamming_thresh: int = 10,
     target_k: int = 20,
     siglip_batch: int = 16,
-    pickscore_ratio: float = 0.8,
+    pickscore_ratio: float = 0.9,
 ) -> List[str]:
     os.makedirs(dst_dir, exist_ok=True)
     # stride pre-sampling
