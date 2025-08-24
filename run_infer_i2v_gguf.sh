@@ -29,7 +29,7 @@ SD_SCRIPTS_DIR="$PARENT_DIR/sd-scripts"
 WANDIR="$PARENT_DIR/Wan2.2-TI2V-5B-Turbo"
 
 if [ ! -d "$PARENT_DIR/Wan2.2-TI2V-5B-Turbo" ]; then
-    git clone https://github.com/quanhaol/Wan2.2-TI2V-5B-Turbo.git
+    git clone https://github.com/quanhaol/Wan2.2-TI2V-5B-Turbo.git "$PARENT_DIR/Wan2.2-TI2V-5B-Turbo"
 fi
 cd $WANDIR
 if [ ! -d ".venv" ]; then
@@ -43,7 +43,7 @@ python setup.py develop
 HF_HUB_ENABLE_HF_TRANSFER=1 huggingface-cli download Wan-AI/Wan2.2-TI2V-5B --local-dir wan_models/Wan2.2-TI2V-5B
 HF_HUB_ENABLE_HF_TRANSFER=1 huggingface-cli download quanhaol/Wan2.2-TI2V-5B-Turbo --local-dir wan_models/Wan2.2-TI2V-5B-Turbo
 echo "GENERATING VID"
-SEED=42 PROMPT="hit" IMAGE="../asset_generator/image.png" NUM_FRAMES=40 OUTPATH="../asset_generator/videos/test.mp4" bash running_scripts/inference/Wan2.2/i2v_fewstep.sh
+SEED=42 PROMPT="hit" IMAGE="../asset_generator/image.png" NUM_FRAMES=40 OUTPATH="../asset_generator/videos/test.mp4" bash ../asset_generator/inference_wan22_5b_turbo.sh
 
 cd "$PROJECT_DIR"
 # python wanpipeline.py
