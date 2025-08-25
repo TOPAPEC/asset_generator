@@ -243,11 +243,3 @@ generate_sequence(
     video_path="videos/output8.mp4"
 )
 
-generate_sequence(
-    pipe=pipe,
-    image=fimg,
-    prompt="Stylized 3D-anime realism; tall waterfall (~50 m) with mist. Shot: start MWS at cliff edge, 24–35mm wide. Camera: continuous tracking follow downward, matching her speed; maintain framing into water, brief underwater tail. Motion: she drops items, leaps, free-falls, clean entry, short submerged glide with bubble trails. Color: cool cyan–teal highlights, high clarity. Stability: identity consistent air→water. Duration ~5 s.",
-    frame_offset=81*9,
-    out_dir=out_dir,
-    video_path="videos/output9.mp4"
-)
