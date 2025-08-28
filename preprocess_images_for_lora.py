@@ -207,10 +207,12 @@ def select_frames_two_phase(
     phash_hamming_thresh: int = 10,
     target_k: int = 20,
     siglip_batch: int = 16,
-    pickscore_ratio: float = 0.9,
+    pickscore_ratio: float = 0.6,
+    group_size: int = None,
+    groupweight_dict: Dict[int, float] = None,
 ) -> List[str]:
     os.makedirs(dst_dir, exist_ok=True)
-    # stride pre-sampling
+    
     candidates: List[Tuple[int,str]] = []
     i = -1
     for name in sorted(os.listdir(src_dir)):
@@ -225,40 +227,86 @@ def select_frames_two_phase(
     
     candidate_paths = [sp for idx, sp in candidates]
     
-    # PickScore filtering (top 80%)
-    filtered_paths = filter_by_pickscore(candidate_paths, keep_ratio=pickscore_ratio)
-    # SigLIP negative prompt filtering (keep best 30%)
-    filtered_candidates = [(idx, sp) for idx, sp in candidates if sp in set(filtered_paths)]
-
-
-    # Stage 1: pHash near-dup prune while copying
-    stage1_paths, stage1_hashes = [], []
-    for idx, sp in filtered_candidates:
-        with Image.open(sp) as img:
-            hh = phash(img)
-            if all(hamming(hh, prev) >= phash_hamming_thresh for prev in stage1_hashes):
-                out = os.path.join(dst_dir, f"img_{idx:03d}.png")
-                img.convert("RGB").save(out)
-                stage1_paths.append(out)
-                stage1_hashes.append(hh)
-    if not stage1_paths:
-        return []
-
-    # Stage 2: FPS-k to exact target_k
-    keep = semantic_select_k_fps(stage1_paths, k=target_k, batch_size=siglip_batch)
-
-    # delete dropped
-    keep_set = set(os.path.abspath(p) for p in keep)
-    for p in stage1_paths:
-        if os.path.abspath(p) not in keep_set:
-            try: os.remove(p)
-            except OSError: pass
-            base, _ = os.path.splitext(p)
-            txtp = base + ".txt"
-            if os.path.isfile(txtp):
-                try: os.remove(txtp)
+    if group_size is None:
+        filtered_paths = filter_by_pickscore(candidate_paths, keep_ratio=pickscore_ratio)
+        filtered_candidates = [(idx, sp) for idx, sp in candidates if sp in set(filtered_paths)]
+        
+        stage1_paths, stage1_hashes = [], []
+        for idx, sp in filtered_candidates:
+            with Image.open(sp) as img:
+                hh = phash(img)
+                if all(hamming(hh, prev) >= phash_hamming_thresh for prev in stage1_hashes):
+                    out = os.path.join(dst_dir, f"img_{idx:03d}.png")
+                    img.convert("RGB").save(out)
+                    stage1_paths.append(out)
+                    stage1_hashes.append(hh)
+        if not stage1_paths:
+            return []
+        
+        keep = semantic_select_k_fps(stage1_paths, k=target_k, batch_size=siglip_batch)
+        
+        keep_set = set(os.path.abspath(p) for p in keep)
+        for p in stage1_paths:
+            if os.path.abspath(p) not in keep_set:
+                try: os.remove(p)
                 except OSError: pass
-    return keep
+                base, _ = os.path.splitext(p)
+                txtp = base + ".txt"
+                if os.path.isfile(txtp):
+                    try: os.remove(txtp)
+                    except OSError: pass
+        return keep
+    
+    groups = []
+    for start_idx in range(0, len(candidates), group_size):
+        end_idx = min(start_idx + group_size, len(candidates))
+        groups.append(candidates[start_idx:end_idx])
+    
+    if groupweight_dict is None:
+        groupweight_dict = {i: 1.0 for i in range(len(groups))}
+    
+    total_weight = sum(groupweight_dict.get(i, 1.0) for i in range(len(groups)))
+    
+    all_final_paths = []
+    
+    for group_idx, group_candidates in enumerate(groups):
+        group_weight = groupweight_dict.get(group_idx, 1.0)
+        group_target_k = max(1, int((group_weight / total_weight) * target_k))
+        
+        group_paths = [sp for idx, sp in group_candidates]
+        
+        group_filtered_paths = filter_by_pickscore(group_paths, keep_ratio=pickscore_ratio)
+        group_filtered_candidates = [(idx, sp) for idx, sp in group_candidates if sp in set(group_filtered_paths)]
+        
+        group_stage1_paths, group_stage1_hashes = [], []
+        for idx, sp in group_filtered_candidates:
+            with Image.open(sp) as img:
+                hh = phash(img)
+                if all(hamming(hh, prev) >= phash_hamming_thresh for prev in group_stage1_hashes):
+                    out = os.path.join(dst_dir, f"img_{idx:03d}.png")
+                    img.convert("RGB").save(out)
+                    group_stage1_paths.append(out)
+                    group_stage1_hashes.append(hh)
+        
+        if not group_stage1_paths:
+            continue
+        
+        group_keep = semantic_select_k_fps(group_stage1_paths, k=min(group_target_k, len(group_stage1_paths)), batch_size=siglip_batch)
+        
+        group_keep_set = set(os.path.abspath(p) for p in group_keep)
+        for p in group_stage1_paths:
+            if os.path.abspath(p) not in group_keep_set:
+                try: os.remove(p)
+                except OSError: pass
+                base, _ = os.path.splitext(p)
+                txtp = base + ".txt"
+                if os.path.isfile(txtp):
+                    try: os.remove(txtp)
+                    except OSError: pass
+        
+        all_final_paths.extend(group_keep)
+    
+    return all_final_paths
 
 # --- YOLOv8-Seg character cut-out + random background compositing ---
 import os, random, math, numpy as np
@@ -522,31 +570,39 @@ async def main():
     ap.add_argument("--max_tags", type=int, default=64)
     ap.add_argument("--trigger", type=str, default="Ohwjfdk")
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--group_size", type=int, default=None)
+    ap.add_argument("--groupweight_dict", type=str, default=None, help="JSON string like '{\"0\":1.5,\"1\":0.8}'")
     args = ap.parse_args()
 
     set_seed(args.seed)
+    
+    groupweight_dict = None
+    if args.groupweight_dict:
+        import json
+        try:
+            parsed_dict = json.loads(args.groupweight_dict)
+            groupweight_dict = {int(k): float(v) for k, v in parsed_dict.items()}
+        except (json.JSONDecodeError, ValueError) as e:
+            print(f"Warning: Invalid groupweight_dict format: {e}")
 
-    # 0) Clean sample dir
     shutil.rmtree(args.sampled_dir, ignore_errors=True)
     os.makedirs(args.sampled_dir, exist_ok=True)
 
-    # 1) Two‑phase selection to exactly k images
     sampled = select_frames_two_phase(
         src_dir=args.src_frames_dir,
         dst_dir=args.sampled_dir,
         keep_every=args.keep_every,
         phash_hamming_thresh=args.phash_hamming,
         target_k=args.target_k,
-        siglip_batch=args.siglip_batch
+        siglip_batch=args.siglip_batch,
+        group_size=args.group_size,
+        groupweight_dict=groupweight_dict
     )
     if not sampled:
         print("No sampled images produced.")
         return
     print(f"[Select] kept {len(sampled)} images")
 
-
-    # 3) WD EVA02 v3 base tags (auto image size)
-    
     prompts_map = await generate_prompts_two_stage(
         sampled,
         trigger_word=args.trigger,
@@ -558,6 +614,69 @@ async def main():
         with open(txt_path, "w", encoding="utf-8") as f:
             f.write(prompt)
 
+async def main():
+    ap = argparse.ArgumentParser(description="LoRA Preprocess: select diverse frames, cut with SAM2, replace backgrounds, tag with WD EVA02 v3, refine with GLM-4.5v.")
+    ap.add_argument("--src_frames_dir", type=str, default="raw_frames")
+    ap.add_argument("--sampled_dir", type=str, default="30_images")
+    ap.add_argument("--with_bg_dir", type=str, default="with_bg")
+    ap.add_argument("--backgrounds_dir", type=str, default="backgrounds")
+    ap.add_argument("--keep_every", type=int, default=1)
+    ap.add_argument("--phash_hamming", type=int, default=10)
+    ap.add_argument("--target_k", type=int, default=60)
+    ap.add_argument("--siglip_batch", type=int, default=16)
+    ap.add_argument("--feather_px", type=int, default=2)
+    ap.add_argument("--replace_original_bg", action="store_true")
+    ap.add_argument("--sam2_ckpt", type=str, default="checkpoints/sam2_hiera_base_plus.pt")
+    ap.add_argument("--sam1_type", type=str, default="vit_h")
+    ap.add_argument("--sam1_ckpt", type=str, default="checkpoints/sam_vit_h_4b8939.pth")
+    ap.add_argument("--wd_general_thr", type=float, default=0.35)
+    ap.add_argument("--wd_character_thr", type=float, default=0.85)
+    ap.add_argument("--max_tags", type=int, default=64)
+    ap.add_argument("--trigger", type=str, default="Ohwjfdk")
+    ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--group_size", type=int, default=81)
+    ap.add_argument("--groupweight_dict", type=str, default=None, help="JSON string like '{\"0\":1.5,\"1\":0.8}'")
+    args = ap.parse_args()
+
+    set_seed(args.seed)
+    
+    groupweight_dict = None
+    if args.groupweight_dict:
+        import json
+        try:
+            parsed_dict = json.loads(args.groupweight_dict)
+            groupweight_dict = {int(k): float(v) for k, v in parsed_dict.items()}
+        except (json.JSONDecodeError, ValueError) as e:
+            print(f"Warning: Invalid groupweight_dict format: {e}")
+
+    shutil.rmtree(args.sampled_dir, ignore_errors=True)
+    os.makedirs(args.sampled_dir, exist_ok=True)
+
+    sampled = select_frames_two_phase(
+        src_dir=args.src_frames_dir,
+        dst_dir=args.sampled_dir,
+        keep_every=args.keep_every,
+        phash_hamming_thresh=args.phash_hamming,
+        target_k=args.target_k,
+        siglip_batch=args.siglip_batch,
+        group_size=args.group_size,
+        groupweight_dict=groupweight_dict
+    )
+    if not sampled:
+        print("No sampled images produced.")
+        return
+    print(f"[Select] kept {len(sampled)} images")
+
+    prompts_map = await generate_prompts_two_stage(
+        sampled,
+        trigger_word=args.trigger,
+        api_key=os.environ["OPENROUTER_API_KEY"]
+    )
+    
+    for image_path, prompt in prompts_map.items():
+        txt_path = os.path.splitext(image_path)[0] + ".txt"
+        with open(txt_path, "w", encoding="utf-8") as f:
+            f.write(prompt)
 
 if __name__ == "__main__":
     asyncio.run(main())

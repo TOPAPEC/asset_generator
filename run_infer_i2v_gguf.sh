@@ -22,7 +22,7 @@ PARENT_DIR="$(dirname "$PROJECT_DIR")"
 SD_SCRIPTS_DIR="$PARENT_DIR/sd-scripts"
 
 # python wanpipeline.py
-python preprocess_images_for_lora.py
+# python preprocess_images_for_lora.py
 
 if [ ! -d "$SD_SCRIPTS_DIR" ]; then
   git clone https://github.com/kohya-ss/sd-scripts.git "$SD_SCRIPTS_DIR"
@@ -39,27 +39,29 @@ pip install lycoris-lora
 pip install "numpy<2"
 
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True,max_split_size_mb:256
-accelerate launch --num_processes=1 train_network.py \
-  --pretrained_model_name_or_path stablediffusionapi/anything-v5 \
+accelerate launch --num_processes=1 sdxl_train_network.py \
+  --pretrained_model_name_or_path Polenov2024/Pony-Diffusion-V6-XL \
   --output_dir ../asset_generator/out_lora \
   --output_name char_lora \
   --save_model_as safetensors \
-  --mixed_precision fp16 \
   --sdpa \
   --sample_every_n_steps 250 \
   --sample_prompts ../asset_generator/sample_prompts.json \
-  --sample_sampler euler_a \
   --network_module lycoris.kohya \
-  --network_args "algo=locon" "conv_dim=8" "conv_alpha=4" \
+  --network_args "algo=lokr" \
   --network_dim 32 \
   --network_alpha 16 \
   --train_data_dir ../asset_generator \
   --caption_extension .txt \
-  --resolution 512 \
+  --resolution 768 \
   --enable_bucket \
   --train_batch_size 2 \
   --max_data_loader_n_workers 0 \
-  --max_train_steps 5000
+  --max_train_steps 3000 \
+  --no_half_vae \
+  --clip_skip 2 \
+  --cache_latents
+
 
 deactivate
 cd "$PROJECT_DIR"
