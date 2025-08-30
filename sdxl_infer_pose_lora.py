@@ -5,7 +5,7 @@ from diffusers import StableDiffusionXLControlNetPipeline, ControlNetModel, UNet
 from transformers import CLIPVisionModelWithProjection
 from diffusers.utils import load_image
 
-BASE_MODEL = "stablediffusionapi/pony-diffusion-v6-xl-2"
+BASE_MODEL = "Bercraft/Illustrious-XL-v2.0-FP16-Diffusers"
 CONTROLNET_ID = "xinsir/controlnet-openpose-sdxl-1.0"
 LORA_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), ".", "out_lora", "char_lora.safetensors"))
 POSES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "poses"))
@@ -13,7 +13,7 @@ OUT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "outputs", "po
 CHAR_DETAILS = str(open("character_details.txt", "r"))
 print(f"CHARACTER DETS: {CHAR_DETAILS}")
 
-PROMPT = f"Ohwjfdk, woman, short hair, multicolored hair, blue eyes, pale skin, slim build, blue and black tactical outfit, long coat, boots, sniper rifle, medieval town street, walking, serious expression, detailed drawn face"
+PROMPT = f"Ohwjfdk, girl, short bob hair, pastel rainbow hair, blue eyes, pale skin, slim build"
 NEGATIVE = "out of frame, lowres, text, error, cropped, worst quality, low quality, jpeg artifacts, ugly, duplicate, morbid, mutilated, out of frame, extra fingers, mutated hands, poorly drawn hands, (((poorly drawn face))), mutation, deformed, blurry, dehydrated, bad anatomy, bad proportions, extra limbs, cloned face, disfigured, gross proportions, malformed limbs, missing arms, missing legs, extra arms, extra legs, fused fingers, too many fingers, long neck, username, watermark, signature,"
 GUIDANCE = 8.0
 STEPS = 30
@@ -51,9 +51,8 @@ controlnet = ControlNetModel.from_pretrained(CONTROLNET_ID, torch_dtype=dtype)
 pipe = StableDiffusionXLControlNetPipeline.from_pretrained(
     BASE_MODEL, controlnet=controlnet, torch_dtype=dtype, 
 )
+pipe.to("cuda")
 
-if torch.cuda.is_available():
-    pipe.to("cuda")
 pipe.load_lora_weights(LORA_PATH)
 if hasattr(pipe, "fuse_lora"):
     pipe.fuse_lora(lora_scale=LORA_SCALE)
@@ -85,12 +84,12 @@ for name in files:
     pose_resized = pose.resize((nw, nh), Image.BICUBIC)
 
     result = pipe(
-        prompt=PROMPT,
+        prompt=PROMPT + " " + name.split(".")[0].replace("_", " "),
         negative_prompt=NEGATIVE,
         image=pose_resized,
         num_inference_steps=STEPS,
         guidance_scale=GUIDANCE,
-        controlnet_conditioning_scale=0.0,
+        controlnet_conditioning_scale=1.0,
         generator=gens,
         num_images_per_prompt=4,
         width=nw,

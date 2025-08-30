@@ -1,0 +1,45 @@
+{
+    "accelerate": {
+      "args": ["--num_processes=2", "--num_machines=1"]
+    },
+    "entrypoint": "sdxl_train_network.py",
+  
+    "pretrained_model_name_or_path": "Bercraft/Illustrious-XL-v2.0-FP16-Diffusers",
+    "output_dir": "../asset_generator/out_lora",
+    "output_name": "char_lora",
+    "save_model_as": "safetensors",
+    "mixed_precision": "bf16",
+    "sdpa": true,
+  
+    "train_data_dir": "../asset_generator",
+    "caption_extension": ".txt",
+    "resolution": "1024",
+    "enable_bucket": true,
+    "min_bucket_reso": "256",
+    "max_bucket_reso": "1024",
+    "train_batch_size": "2",
+    "max_data_loader_n_workers": "0",
+    "max_train_steps": "1000",
+  
+    "network_module": "lycoris.kohya",
+    "network_args": ["algo=locon", "conv_dim=8", "conv_alpha=4"],
+    "network_dim": "32",
+    "network_alpha": "16",
+    "optimizer_type": "AdamW",
+    "optimizer_args": ["weight_decay=0.01", "betas=0.9,0.999", "eps=1e-8"],
+    "learning_rate": "1e-4", 
+    "lr_scheduler": "cosine",
+    "lr_warmup_steps": "100",
+    "max_grad_norm": "1.0",
+  
+    "clip_skip": "2",
+    "cache_latents": true,
+    "vae_batch_size": "1",
+  
+    "ddp_gradient_as_bucket_view": true,
+    "ddp_static_graph": true,
+  
+    "sample_every_n_steps": "100",
+    "sample_prompts": "../asset_generator/sample_prompts.json",
+    "sample_sampler": "dpmsolver++"
+  }
