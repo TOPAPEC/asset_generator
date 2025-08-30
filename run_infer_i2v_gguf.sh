@@ -13,14 +13,15 @@ fi
 . .venv/bin/activate
 export HF_HOME="/workspace/hf_cache/"
 export TRANSFORMERS_CACHE="/workspace/hf_cache/transformers/"
-# pip install -r requirements.txt
-# pip install lycoris-lora
+pip install -r requirements.txt
+pip install lycoris-lora
 
 cd "$(dirname "$0")"
 PROJECT_DIR="$PWD"
 PARENT_DIR="$(dirname "$PROJECT_DIR")"
 SD_SCRIPTS_DIR="$PARENT_DIR/sd-scripts"
 
+python wanpipeline_searching.py
 # python wanpipeline.py
 # python preprocess_images_for_lora.py
 
@@ -76,4 +77,4 @@ export TORCH_NCCL_BLOCKING_WAIT=1
 deactivate
 cd "$PROJECT_DIR"
 . .venv/bin/activate
-python sdxl_infer_pose_lora.py
+# python sdxl_infer_pose_lora.py
