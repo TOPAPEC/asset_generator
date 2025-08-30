@@ -36,11 +36,12 @@ fi
 pip install -U pip
 pip install -U -r requirements.txt diffusers transformers accelerate safetensors torchvision
 pip install lycoris-lora
+# pip install -U "diffusers>=0.26.0" transformers accelerate safetensors huggingface_hub bitsandbytes==0.45.2
 pip install "numpy<2"
 
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True,max_split_size_mb:256
 accelerate launch --num_processes=1 sdxl_train_network.py \
-  --pretrained_model_name_or_path Polenov2024/Pony-Diffusion-V6-XL \
+  --pretrained_model_name_or_path Bercraft/Illustrious-XL-v2.0-FP16-Diffusers \
   --output_dir ../asset_generator/out_lora \
   --output_name char_lora \
   --save_model_as safetensors \
@@ -60,10 +61,11 @@ accelerate launch --num_processes=1 sdxl_train_network.py \
   --max_train_steps 3000 \
   --no_half_vae \
   --clip_skip 2 \
-  --cache_latents
+  --cache_latents \
+
 
 
 deactivate
 cd "$PROJECT_DIR"
 . .venv/bin/activate
-python infer_pose_lora.py
+python sdxl_infer_pose_lora.py
