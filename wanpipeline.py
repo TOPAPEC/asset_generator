@@ -129,7 +129,7 @@ pipe.set_adapters(["lightning", "lightning_2"], adapter_weights=[3., 1.5])
 
 # fimg, limg = get_first_and_last_frame("raw_frames/")
 
-fimg = load_image(Image.open("image.png")).convert("RGB")
+fimg = load_image(Image.open("input_pics/soldier.png")).convert("RGB")
 out_dir = "raw_frames"
 
 os.makedirs(out_dir, exist_ok=True)
@@ -142,9 +142,9 @@ def generate_sequence(
     image,
     prompt,
     negative_prompt=NEGATIVE,
-    num_inference_steps=6,
+    num_inference_steps=8,
     guidance_scale=1.0,
-    num_frames=81,
+    num_frames=96,
     height=768,
     width=768,
     out_dir="frames",
@@ -174,17 +174,39 @@ def generate_sequence(
 generate_sequence(
     pipe=pipe,
     image=fimg,
-    prompt="Photoreal shoreline at golden hour. Shot: WS→MWS, eye-level, 35–50mm. Camera: steady tracking forward behind her with a subtle push-in ~20%. Motion: she starts running from frame one; hair/cloth react; waves move; horizon steady. Lighting: warm rim-light, light haze. Stability: face and outfit unchanged. Duration ~5 s.",
-    frame_offset=81*1,
+    prompt="""
+    Robo-soldier in dark neon-lit alley at night, armored plating wet from rain, glowing orange visor; cinematic photoreal style.
+
+Beat 1 (0–24f): medium-wide, 35 mm, eye-level; steady dolly-in ~20%; robo-soldier walks forward, heavy steps, arms swaying; neon signs flicker; horizon steady.  
+Beat 2 (24–48f): camera cranes upward fast ~2 m, tilt down; leap moment, soldier crouches and jumps; frame holds his midair posture, legs bent, arms extended slightly.  
+Beat 3 (48–72f): camera arcs overhead ~120°, top-down angle; captures body at jump apex, glowing visor visible, then falling back down; shallow depth of field.  
+Beat 4 (72–96f): camera drops behind soldier, medium shot, 50 mm; tracks backward as soldier lands hard, knees bend, dust splash; then resumes forward walk, seen from back.  
+
+Lighting: wet alley reflections, cold blue fill + orange visor glow.  
+Color grade: teal–orange cinematic HDR.  
+Stability: armor intact, visor glow constant, background fixed.  
+""",
+    frame_offset=96*1,
     out_dir=out_dir,
     video_path="videos/output1.mp4"
 )
 
+
 generate_sequence(
     pipe=pipe,
     image=fimg,
-    prompt="Small-town brick wall alley. Shot: MS side profile, eye-level, 50mm. Camera: constant lateral track matching her pace (left→right), no extra moves. Motion: she breaks into a run to screen-left from the start; ponytail swings; mild background parallax. Light: soft overcast. Stability: identity locked. Duration ~5 s.",
-    frame_offset=81*2,
+    prompt="""
+Robo-soldier in neon-lit futuristic street, metallic armor glistening with moisture, glowing orange visor. Lighting slightly brighter than dark alley baseline, with more visible rim and fill light.
+
+Beat 1 (0–24f): medium-wide, 35 mm, side angle (profile view); camera pans right slowly ~20%; robo-soldier begins moving forward on his arms, mechanical limbs pressing into wet pavement, sparks from joints.  
+Beat 2 (24–48f): camera holds side profile, dolly-in ~15%; soldier continues arm-walk, then shifts balance preparing for roll; mechanical body tenses, arms bend.  
+Beat 3 (48–72f): camera tracks side view; soldier performs forward roll (quilt-like tumble), motion blur avoided; armor plates glint under brighter streetlight; background stays stable.  
+Beat 4 (72–96f): camera still side-on, medium shot, 50 mm; soldier rises into aggressive fighting stance, feet planted, arms raised in combat guard; glowing visor intensifies slightly; reflections on wet ground enhance silhouette.
+
+Lighting: slightly brighter, with cold blue key and orange visor glow as contrast.  
+Color grade: cinematic teal-orange, HDR sharp detail.  
+Stability: armor intact, visor glow steady, background consistent. """,
+    frame_offset=96*2,
     out_dir=out_dir,
     video_path="videos/output2.mp4"
 )
@@ -192,54 +214,19 @@ generate_sequence(
 generate_sequence(
     pipe=pipe,
     image=fimg,
-    prompt="Cyclorama boxing gym. Shot: MS→MCU, eye-level, 50mm, shallow DoF. Camera: gentle dolly-in ~25%, no pan/tilt. Motion: she sets stance then throws jab–cross–jab with correct wrist alignment and guard; chalk dust motes drift. Light: soft top + rim. Stability: face/outfit consistent. Duration ~5 s.",
-    frame_offset=81*3,
+    prompt="""
+Robo-soldier close-up, framed from torso up, glowing orange visor, metallic armor with rain droplets. Cinematic photoreal style.
+
+Beat 1 (0–24f): medium close-up, 50 mm, eye-level; camera steady, slight dolly-in ~10%; robot faces front, armor wet, visor glowing steadily; subtle breathing movement.  
+Beat 2 (24–48f): same shot size; robot nods head slightly down then up, showing visor under different light angles; reflections flicker; background neon blur steady.  
+Beat 3 (48–72f): camera arcs left ~45° around torso; robot slowly turns his head, then begins rotating shoulders.  
+Beat 4 (72–96f): close-up (85 mm), shallow DoF; camera settles behind robot; full reveal of armored spine and back of head, glowing elements at neck and shoulder joints visible; horizon fixed.
+
+Lighting: moody neon, slightly brighter on visor front, rim-light along shoulders, soft reflections on wet plating.  
+Color grade: teal–orange, cinematic HDR.  
+Stability: armor consistent, visor glow steady, face/spine intact. 
+""",
+    frame_offset=96*3,
     out_dir=out_dir,
     video_path="videos/output3.mp4"
 )
-
-generate_sequence(
-    pipe=pipe,
-    image=fimg,
-    prompt="Brick wall portrait. Shot: MS→CU centered, eye-level, 85mm tele. Camera: slow dolly-in ~30% to a clean face/neck/upper chest CU; no zoom artifacts. Motion: subtle breathing and natural eye saccades; hair micro-movement. Light: soft overcast with warm skin tone. Stability: facial landmarks stable. Duration ~5 s.",
-    frame_offset=81*4,
-    out_dir=out_dir,
-    video_path="videos/output4.mp4"
-)
-
-generate_sequence(
-    pipe=pipe,
-    image=fimg,
-    prompt="Forest clearing with soft canopy light. Shot: starts MS full-body profile, 50mm. Camera: gentle dolly-in ~25% ending on MCU framing face, neck, shoulders. Motion: she talks and laughs, then shifts to stern expression; subtle head/shoulder movement. Light: cool ambient with warm rim. Stability: outfit/face constant. Duration ~5 s.",
-    frame_offset=81*5,
-    out_dir=out_dir,
-    video_path="videos/output5.mp4"
-)
-
-generate_sequence(
-    pipe=pipe,
-    image=fimg,
-    prompt="Cozy town street. Shot: starts MWS (upper body), 35mm. Camera: subtle push-in ~20% as she performs smooth 180° turn, ending on MCU of head/neck/upper back. Motion: hair sways as she turns from face-on to back view. Light: warm/cool afternoon. Stability: proportions and facial features consistent. Duration ~5 s.",
-    frame_offset=81*6,
-    out_dir=out_dir,
-    video_path="videos/output6.mp4"
-)
-
-generate_sequence(
-    pipe=pipe,
-    image=fimg,
-    prompt="Open town plaza. Shot: WS→MS, 35mm, centered. Camera: steady orbit arc ~120° clockwise at constant radius. Motion: she drops any objects, takes fighting stance, executes clean roundhouse kicks with hip rotation and guard up; ground scuffs appear. Light: crisp daylight. Stability: limbs well-formed; identity locked. Duration ~5 s.",
-    frame_offset=81*7,
-    out_dir=out_dir,
-    video_path="videos/output7.mp4"
-)
-
-generate_sequence(
-    pipe=pipe,
-    image=fimg,
-    prompt="Town scene with chair. Shot: starts WS full height, 35mm. Camera: smooth orbit arc ~100° around her as she sits, combined with gentle push-in so mid-body and face become clearer during orbit. Motion: she takes chair, sits gracefully, adjusts posture; cloth settles. Light: warm street practicals. Stability: face/outfit consistent. Duration ~5 s.",
-    frame_offset=81*8,
-    out_dir=out_dir,
-    video_path="videos/output8.mp4"
-)
-

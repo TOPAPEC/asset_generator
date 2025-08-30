@@ -21,9 +21,9 @@ PROJECT_DIR="$PWD"
 PARENT_DIR="$(dirname "$PROJECT_DIR")"
 SD_SCRIPTS_DIR="$PARENT_DIR/sd-scripts"
 
-python wanpipeline_searching.py
+# python wanpipeline_searching.py
 # python wanpipeline.py
-# python preprocess_images_for_lora.py
+python preprocess_images_for_lora.py
 
 if [ ! -d "$SD_SCRIPTS_DIR" ]; then
   git clone https://github.com/kohya-ss/sd-scripts.git "$SD_SCRIPTS_DIR"
@@ -34,10 +34,10 @@ if [ ! -d .venv ]; then
   python -m venv .venv
 fi
 . .venv/bin/activate
-# pip install -U pip
-# pip install -U -r requirements.txt diffusers transformers accelerate safetensors torchvision
-# pip install lycoris-lora
-# pip install "numpy<2"
+pip install -U pip
+pip install -U -r requirements.txt diffusers transformers accelerate safetensors torchvision
+pip install lycoris-lora
+pip install "numpy<2"
 
 export CUDA_VISIBLE_DEVICES=0,1
 export NCCL_P2P_DISABLE=1
@@ -71,10 +71,10 @@ export TORCH_NCCL_BLOCKING_WAIT=1
 #   --sample_prompts ../asset_generator/sample_prompts.json \
 #   --sample_sampler "dpmsolver++"
 
-# python ../asset_generator/sdxl_train_from_json.py ../asset_generator/sdxl_train_conf.json
+python ../asset_generator/sdxl_train_from_json.py ../asset_generator/sdxl_train_conf.json
 
 
 deactivate
 cd "$PROJECT_DIR"
 . .venv/bin/activate
-# python sdxl_infer_pose_lora.py
+python sdxl_infer_pose_lora.py

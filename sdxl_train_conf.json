@@ -1,6 +1,6 @@
 {
     "accelerate": {
-      "args": ["--num_processes=2", "--num_machines=1"]
+      "args": ["--num_processes=1", "--num_machines=1"]
     },
     "entrypoint": "sdxl_train_network.py",
   
@@ -17,7 +17,7 @@
     "enable_bucket": true,
     "min_bucket_reso": "256",
     "max_bucket_reso": "1024",
-    "train_batch_size": "2",
+    "train_batch_size": "4",
     "max_data_loader_n_workers": "0",
     "max_train_steps": "1000",
   

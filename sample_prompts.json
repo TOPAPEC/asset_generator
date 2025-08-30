@@ -1,20 +1,20 @@
 [
   {
-    "prompt": "Ohwjfdk, score_9, girl, short white hair, pink hair tips, green hair tips, blue eyes, pale skin, slim build, blue hooded cloak, black pants, black shoes with red accents, short multi-colored hair, medieval village street, running pose",
+    "prompt": "Ohwjfdk, robot, black and grey armor, orange lights, antenna, water droplets, fullbody standing in front of giant glass skyscraper in Moscow",
     "negative_prompt": "multiple characters, porn, hentai, nsfw, nudity, photorealism, realistic textures, blurry, deformed, extra limbs, bad hands, text, watermark, logo",
     "seed": 42,
     "width": 1024,
     "height": 1024
   },
   {
-    "prompt": "Ohwjfdk, score_9, girl, short white hair, pink hair tips, green hair tips, blue eyes, pale skin, slim build, blue hooded cloak, sfw, action scene, dramatic cinematic lighting, fluid motion, stylized 2D illustration, expressive colors, sharp details, epic atmosphere",
+    "prompt": "Ohwjfdk, robot, black and grey armor, orange lights, antenna, water droplets, in action scene swinging a cyberpunk metal sword",
     "negative_prompt": "out of frame, lowres, text, error, cropped, worst quality, low quality, jpeg artifacts, ugly, duplicate, morbid, mutilated, out of frame, extra fingers, mutated hands, poorly drawn hands, (((poorly drawn face))), mutation, deformed, blurry, dehydrated, bad anatomy, bad proportions, extra limbs, cloned face, disfigured, gross proportions, malformed limbs, missing arms, missing legs, extra arms, extra legs, fused fingers, too many fingers, long neck, username, watermark, signature",
     "seed": 123,
     "width": 1024,
     "height": 1024
   },
   {
-    "prompt": "Ohwjfdk, score_9, girl, short white hair, pink hair tips, green hair tips, blue eyes, pale skin, slim build, closeup portrait shot, single character, sfw, absurdres, 2d illustration",
+    "prompt": "Ohwjfdk, robot, black and grey armor, orange lights, antenna, water droplets, closeup portrain shot, pointing towards viewer saying you are next",
     "negative_prompt": "multiple characters, porn, hentai, nsfw, nudity, photorealism, blurry eyes, distortions, extra fingers, text, watermark",
     "seed": 2025,
     "width": 1024,

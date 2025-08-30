@@ -13,7 +13,7 @@ OUT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "outputs", "po
 CHAR_DETAILS = str(open("character_details.txt", "r"))
 print(f"CHARACTER DETS: {CHAR_DETAILS}")
 
-PROMPT = f"Ohwjfdk, girl, short bob hair, pastel rainbow hair, blue eyes, pale skin, slim build"
+PROMPT = f"Ohwjfdk, {CHAR_DETAILS}"
 NEGATIVE = "out of frame, lowres, text, error, cropped, worst quality, low quality, jpeg artifacts, ugly, duplicate, morbid, mutilated, out of frame, extra fingers, mutated hands, poorly drawn hands, (((poorly drawn face))), mutation, deformed, blurry, dehydrated, bad anatomy, bad proportions, extra limbs, cloned face, disfigured, gross proportions, malformed limbs, missing arms, missing legs, extra arms, extra legs, fused fingers, too many fingers, long neck, username, watermark, signature,"
 GUIDANCE = 8.0
 STEPS = 30
