@@ -129,7 +129,7 @@ pipe.set_adapters(["lightning", "lightning_2"], adapter_weights=[3., 1.5])
 
 # fimg, limg = get_first_and_last_frame("raw_frames/")
 
-fimg = load_image(Image.open("input_pics/soldier.png")).convert("RGB")
+fimg = load_image(Image.open("input_pics/whale.jpg")).convert("RGB")
 out_dir = "raw_frames"
 
 os.makedirs(out_dir, exist_ok=True)
@@ -145,8 +145,9 @@ def generate_sequence(
     num_inference_steps=8,
     guidance_scale=1.0,
     num_frames=96,
-    height=768,
-    width=768,
+    height=1024,
+    width=1024,
+    last_image=None,
     out_dir="frames",
     video_path="videos/output.mp4",
     frame_offset=0,
@@ -154,16 +155,29 @@ def generate_sequence(
 ):
     print(f"Starting generation: {prompt[:50]}...")  # short preview of prompt
 
-    frames = pipe(
-        image=image,
-        prompt=prompt,
-        negative_prompt=negative_prompt,
-        num_inference_steps=num_inference_steps,
-        guidance_scale=guidance_scale,
-        num_frames=num_frames,
-        height=height,
-        width=width,
-    ).frames[0]
+    if last_image:
+        frames = pipe(
+            image=image,
+            last_image=last_image,
+            prompt=prompt,
+            negative_prompt=negative_prompt,
+            num_inference_steps=num_inference_steps,
+            guidance_scale=guidance_scale,
+            num_frames=num_frames,
+            height=height,
+            width=width,
+        ).frames[0]
+    else:
+        frames = pipe(
+            image=image,
+            prompt=prompt,
+            negative_prompt=negative_prompt,
+            num_inference_steps=num_inference_steps,
+            guidance_scale=guidance_scale,
+            num_frames=num_frames,
+            height=height,
+            width=width,
+        ).frames[0]
 
     for i, im in enumerate(frames):
         to_pil(im).save(os.path.join(out_dir, f"frame_{frame_offset + i + 1:03d}.png"))
@@ -171,62 +185,46 @@ def generate_sequence(
     export_to_video(frames, video_path, fps=fps)
     print(f"Video saved: {video_path}")
 
-generate_sequence(
-    pipe=pipe,
-    image=fimg,
-    prompt="""
-    Robo-soldier in dark neon-lit alley at night, armored plating wet from rain, glowing orange visor; cinematic photoreal style.
+# generate_sequence(
+#     pipe=pipe,
+#     image=fimg,
+#     prompt="""
+# Gigantic ethereal space whale drifts gracefully through a deep cosmic void filled with glowing stars and swirling galaxies. Opening: wide shot, eye-level perspective, 35 mm lens. Camera: gentle orbital arc ~60° around the whale’s left side, slow push-in ~20%. Motion: whale’s fins and tail move subtly as if swimming; its body glides forward steadily among constellations. Foreground: bright stars shimmer and twinkle; background: spiral galaxy remains fixed in distance. Lighting: cool blue rim-light outlines whale’s translucent form; faint volumetric glow radiates around it; overall high contrast, deep midnight tones. Style: photoreal cosmic fantasy.
+# """,
+#     frame_offset=96*1,
+#     out_dir=out_dir,
+#     video_path="videos/output1.mp4"
+# )
 
-Beat 1 (0–24f): medium-wide, 35 mm, eye-level; steady dolly-in ~20%; robo-soldier walks forward, heavy steps, arms swaying; neon signs flicker; horizon steady.  
-Beat 2 (24–48f): camera cranes upward fast ~2 m, tilt down; leap moment, soldier crouches and jumps; frame holds his midair posture, legs bent, arms extended slightly.  
-Beat 3 (48–72f): camera arcs overhead ~120°, top-down angle; captures body at jump apex, glowing visor visible, then falling back down; shallow depth of field.  
-Beat 4 (72–96f): camera drops behind soldier, medium shot, 50 mm; tracks backward as soldier lands hard, knees bend, dust splash; then resumes forward walk, seen from back.  
-
-Lighting: wet alley reflections, cold blue fill + orange visor glow.  
-Color grade: teal–orange cinematic HDR.  
-Stability: armor intact, visor glow constant, background fixed.  
-""",
-    frame_offset=96*1,
-    out_dir=out_dir,
-    video_path="videos/output1.mp4"
-)
-
+limg = load_image(Image.open("raw_frames/frame_193.png")).convert("RGB")
 
 generate_sequence(
     pipe=pipe,
-    image=fimg,
+    image=limg,
+    last_image=fimg,
     prompt="""
-Robo-soldier in neon-lit futuristic street, metallic armor glistening with moisture, glowing orange visor. Lighting slightly brighter than dark alley baseline, with more visible rim and fill light.
-
-Beat 1 (0–24f): medium-wide, 35 mm, side angle (profile view); camera pans right slowly ~20%; robo-soldier begins moving forward on his arms, mechanical limbs pressing into wet pavement, sparks from joints.  
-Beat 2 (24–48f): camera holds side profile, dolly-in ~15%; soldier continues arm-walk, then shifts balance preparing for roll; mechanical body tenses, arms bend.  
-Beat 3 (48–72f): camera tracks side view; soldier performs forward roll (quilt-like tumble), motion blur avoided; armor plates glint under brighter streetlight; background stays stable.  
-Beat 4 (72–96f): camera still side-on, medium shot, 50 mm; soldier rises into aggressive fighting stance, feet planted, arms raised in combat guard; glowing visor intensifies slightly; reflections on wet ground enhance silhouette.
-
-Lighting: slightly brighter, with cold blue key and orange visor glow as contrast.  
-Color grade: cinematic teal-orange, HDR sharp detail.  
-Stability: armor intact, visor glow steady, background consistent. """,
+Gigantic ethereal space whale drifts gracefully through a deep cosmic void filled with glowing stars and swirling galaxies. Opening: wide shot, eye-level perspective, 35 mm lens. Camera: gentle orbital arc ~60° around the whale’s left side, slow push-in ~20%. Motion: whale’s fins and tail move subtly as if swimming; its body glides forward steadily among constellations. Foreground: bright stars shimmer and twinkle; background: spiral galaxy remains fixed in distance. Lighting: cool blue rim-light outlines whale’s translucent form; faint volumetric glow radiates around it; overall high contrast, deep midnight tones. Style: photoreal cosmic fantasy.""",
     frame_offset=96*2,
     out_dir=out_dir,
     video_path="videos/output2.mp4"
 )
 
-generate_sequence(
-    pipe=pipe,
-    image=fimg,
-    prompt="""
-Robo-soldier close-up, framed from torso up, glowing orange visor, metallic armor with rain droplets. Cinematic photoreal style.
+# generate_sequence(
+#     pipe=pipe,
+#     image=fimg,
+#     prompt="""
+# Robo-soldier close-up, framed from torso up, glowing orange visor, metallic armor with rain droplets. Cinematic photoreal style.
 
-Beat 1 (0–24f): medium close-up, 50 mm, eye-level; camera steady, slight dolly-in ~10%; robot faces front, armor wet, visor glowing steadily; subtle breathing movement.  
-Beat 2 (24–48f): same shot size; robot nods head slightly down then up, showing visor under different light angles; reflections flicker; background neon blur steady.  
-Beat 3 (48–72f): camera arcs left ~45° around torso; robot slowly turns his head, then begins rotating shoulders.  
-Beat 4 (72–96f): close-up (85 mm), shallow DoF; camera settles behind robot; full reveal of armored spine and back of head, glowing elements at neck and shoulder joints visible; horizon fixed.
+# Beat 1 (0–24f): medium close-up, 50 mm, eye-level; camera steady, slight dolly-in ~10%; robot faces front, armor wet, visor glowing steadily; subtle breathing movement.  
+# Beat 2 (24–48f): same shot size; robot nods head slightly down then up, showing visor under different light angles; reflections flicker; background neon blur steady.  
+# Beat 3 (48–72f): camera arcs left ~45° around torso; robot slowly turns his head, then begins rotating shoulders.  
+# Beat 4 (72–96f): close-up (85 mm), shallow DoF; camera settles behind robot; full reveal of armored spine and back of head, glowing elements at neck and shoulder joints visible; horizon fixed.
 
-Lighting: moody neon, slightly brighter on visor front, rim-light along shoulders, soft reflections on wet plating.  
-Color grade: teal–orange, cinematic HDR.  
-Stability: armor consistent, visor glow steady, face/spine intact. 
-""",
-    frame_offset=96*3,
-    out_dir=out_dir,
-    video_path="videos/output3.mp4"
-)
+# Lighting: moody neon, slightly brighter on visor front, rim-light along shoulders, soft reflections on wet plating.  
+# Color grade: teal–orange, cinematic HDR.  
+# Stability: armor consistent, visor glow steady, face/spine intact. 
+# """,
+#     frame_offset=96*3,
+#     out_dir=out_dir,
+#     video_path="videos/output3.mp4"
+# )

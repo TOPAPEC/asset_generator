@@ -22,8 +22,8 @@ PARENT_DIR="$(dirname "$PROJECT_DIR")"
 SD_SCRIPTS_DIR="$PARENT_DIR/sd-scripts"
 
 # python wanpipeline_searching.py
-# python wanpipeline.py
-python preprocess_images_for_lora.py
+python wanpipeline.py
+# python preprocess_images_for_lora.py
 
 if [ ! -d "$SD_SCRIPTS_DIR" ]; then
   git clone https://github.com/kohya-ss/sd-scripts.git "$SD_SCRIPTS_DIR"
@@ -71,10 +71,10 @@ export TORCH_NCCL_BLOCKING_WAIT=1
 #   --sample_prompts ../asset_generator/sample_prompts.json \
 #   --sample_sampler "dpmsolver++"
 
-python ../asset_generator/sdxl_train_from_json.py ../asset_generator/sdxl_train_conf.json
+# python ../asset_generator/sdxl_train_from_json.py ../asset_generator/sdxl_train_conf.json
 
 
 deactivate
 cd "$PROJECT_DIR"
 . .venv/bin/activate
-python sdxl_infer_pose_lora.py
+# python sdxl_infer_pose_lora.py
